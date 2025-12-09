@@ -1,116 +1,82 @@
 "use client"
 
 import Link from "next/link"
-import { useAuth } from "@/lib/auth-context"
-import { usePermissions } from "@/hooks/use-permissions"
-import { LayoutDashboard, Package, Calculator, DollarSign, Settings, BarChart3, LogOut } from "lucide-react"
-import { useState } from "react"
+import { usePathname } from "next/navigation"
+import type { User } from "@/lib/types"
+import { LogoutButton } from "./logout-button"
+import { Home, Package, Calculator, DollarSign, Users, Settings } from "lucide-react"
 
-export function Sidebar() {
-  const { user, logout } = useAuth()
-  const { hasPermission } = usePermissions()
-  const [isCollapsed, setIsCollapsed] = useState(false)
+interface SidebarProps {
+  user: User
+}
+
+export function Sidebar({ user }: SidebarProps) {
+  const pathname = usePathname()
 
   const menuItems = [
+    { href: "/dashboard", icon: Home, label: "Dashboard", roles: ["admin", "chef_de_chantier", "ingenieur_structure"] },
     {
-      label: "Tableau de Bord",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-      permission: "view_dashboard" as const,
+      href: "/dashboard/projects",
+      icon: Home,
+      label: "Projects",
+      roles: ["admin", "chef_de_chantier", "ingenieur_structure"],
     },
+    { href: "/dashboard/inventory", icon: Package, label: "Inventory", roles: ["admin", "chef_de_chantier"] },
     {
-      label: "Gestion de Stock",
-      href: "/inventory",
-      icon: Package,
-      permission: "view_inventory" as const,
-    },
-    {
-      label: "Calculs Structurels",
-      href: "/projects",
+      href: "/dashboard/calculations",
       icon: Calculator,
-      permission: "view_projects" as const,
+      label: "Calculations",
+      roles: ["admin", "chef_de_chantier", "ingenieur_structure"], // Added chef_de_chantier to roles
+    },
+    { href: "/dashboard/costs", icon: DollarSign, label: "Costs", roles: ["admin", "chef_de_chantier"] },
+    { 
+      href: "/dashboard/users", 
+      icon: Users, 
+      label: "Users", 
+      roles: ["admin", "chef_de_chantier", "ingenieur_structure"], // Added all roles
     },
     {
-      label: "Gestion des Coûts",
-      href: "/costs",
-      icon: DollarSign,
-      permission: "view_costs" as const,
-    },
-    {
-      label: "Rapports",
-      href: "/reports",
-      icon: BarChart3,
-      permission: "view_dashboard" as const,
-    },
-    {
-      label: "Paramètres",
-      href: "/settings",
+      href: "/dashboard/settings",
       icon: Settings,
-      permission: "view_settings" as const,
+      label: "Settings",
+      roles: ["admin", "chef_de_chantier", "ingenieur_structure"],
     },
   ]
 
+  const visibleItems = menuItems.filter((item) => item.roles.includes(user.role))
+
   return (
-    <aside
-      className={`bg-white border-r border-gray-200 transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"} flex flex-col`}
-    >
-      {/* Logo */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-        {!isCollapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">BS</span>
-            </div>
-            <span className="font-bold text-gray-900">BuildStock</span>
-          </div>
-        )}
-        <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-1 hover:bg-gray-100 rounded-lg">
-          {isCollapsed ? "→" : "←"}
-        </button>
+    <aside className="w-64 bg-slate-900 text-white flex flex-col">
+      <div className="p-6 border-b border-slate-700">
+        <h1 className="text-2xl font-bold">BuildStock</h1>
+        <p className="text-sm text-slate-400">Pro</p>
       </div>
 
-      {/* Menu Items */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {menuItems.map((item) => {
-          if (!hasPermission(item.permission as any)) return null
-
+        {visibleItems.map((item) => {
           const Icon = item.icon
+          const isActive = pathname === item.href
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-              title={isCollapsed ? item.label : ""}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                isActive ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800"
+              }`}
             >
               <Icon size={20} />
-              {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+              <span>{item.label}</span>
             </Link>
           )
         })}
       </nav>
 
-      {/* User Info & Logout */}
-      <div className="p-4 border-t border-gray-200 space-y-2">
-        {!isCollapsed && user && (
-          <div className="text-xs">
-            <p className="font-medium text-gray-900 truncate">{user.name}</p>
-            <p className="text-gray-500 truncate">{user.email}</p>
-            <p className="text-xs text-blue-600 capitalize mt-1">
-              {user.role === "admin"
-                ? "Administrateur"
-                : user.role === "supervisor"
-                  ? "Chef de Chantier"
-                  : "Ingénieur Structure"}
-            </p>
-          </div>
-        )}
-        <button
-          onClick={logout}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
-        >
-          <LogOut size={18} />
-          {!isCollapsed && <span className="text-sm font-medium">Déconnexion</span>}
-        </button>
+      <div className="p-4 border-t border-slate-700 space-y-2">
+        <div className="px-4 py-3 bg-slate-800 rounded-lg">
+          <p className="text-sm font-medium">{user.full_name || user.email}</p>
+          <p className="text-xs text-slate-400 capitalize">{user.role.replace("_", " ")}</p>
+        </div>
+        <LogoutButton />
       </div>
     </aside>
   )

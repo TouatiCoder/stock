@@ -1,169 +1,93 @@
-# BuildStock Pro
+# balleisabella79-project
 
-Application complète de gestion de stocks et calculs structurels pour l'industrie de la construction.
 
-## Fonctionnalités
 
-### 1. Authentification Sécurisée
-- **Login/Sign-up** : Authentification par email et mot de passe
-- **Récupération de mot de passe** : Lien de réinitialisation sécurisé
-- **Gestion des rôles** : Attribution des rôles par l'administrateur
-- **Authentification biométrique** : Support Face ID/Empreinte (optionnel)
+## Getting started
 
-### 2. Gestion des Rôles et Permissions
-Trois rôles avec permissions différentes :
-- **Administrateur** : Accès complet, gestion d'équipe, paramètres entreprise
-- **Chef de Chantier** : Gestion opérationnelle, saisie de stock, commandes
-- **Ingénieur Structure** : Calculs techniques, projets, matériaux
+To make it easy for you to get started with GitLab, here's a list of recommended next steps.
 
-### 3. Tableaux de Bord Personnalisés
-- **Admin** : KPIs financiers, alertes budgets, synthèse inventaire
-- **Chef de Chantier** : Stock actuel, seuils critiques, commandes en cours
-- **Ingénieur** : Outils de calcul, bibliothèque de matériaux
+Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
 
-### 4. Gestion de Stock/Inventaire
-- Vue globale de l'inventaire avec valeur totale
-- Liste complète des matériaux avec recherche et filtres
-- Suivi des mouvements (entrées, sorties, retours)
-- Alertes sur les seuils critiques
-- Prévisions de stock
+## Add your files
 
-### 5. Calculs Structurels et Projets
-- Gestion complète des projets (budget, dates, statut)
-- Outils de calcul de charges (ELU/ELS)
-- Bibliothèque de matériaux standardisés
-- Suivi du budget vs dépenses réelles
+* [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
+* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
 
-### 6. Gestion des Coûts et Fournisseurs
-- Tableau de bord financier avec KPIs
-- Graphiques d'évolution des coûts
-- Gestion des fournisseurs avec notations
-- Gestion des commandes et factures
-- Historique des prix et performance fournisseurs
+```
+cd existing_repo
+git remote add origin https://gitlab.com/balleisabella79-group/balleisabella79-project.git
+git branch -M main
+git push -uf origin main
+```
 
-### 7. Paramètres et Gestion d'Équipe
-- **Profil personnel** : Modification des informations
-- **Sécurité** : Changement de mot de passe, sessions actives
-- **Paramètres entreprise** : Configuration devise, TVA, adresse
-- **Gestion utilisateurs** : Invitation d'employés, attribution de rôles
+## Integrate with your tools
 
-## Structure du Projet
+* [Set up project integrations](https://gitlab.com/balleisabella79-group/balleisabella79-project/-/settings/integrations)
 
-\`\`\`
-app/
-├── layout.tsx                 # Layout principal avec AuthProvider
-├── page.tsx                   # Page d'accueil publique
-├── login/                     # Pages d'authentification
-├── signup/
-├── forgot-password/
-├── reset-password/
-├── dashboard/                 # Dashboard personnalisé par rôle
-├── inventory/                 # Gestion de stock
-├── projects/                  # Calculs structurels
-├── costs/                     # Gestion des coûts
-└── settings/                  # Paramètres utilisateur
+## Collaborate with your team
 
-components/
-├── auth/                      # Composants d'authentification
-├── dashboards/               # Dashboards par rôle
-├── inventory/                # Composants de gestion de stock
-├── projects/                 # Composants de projets
-├── costs/                    # Composants de gestion de coûts
-├── settings/                 # Composants de paramètres
-├── layout/                   # Sidebar, TopBar
-└── ui/                       # Composants UI réutilisables
+* [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
+* [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
+* [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
+* [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
+* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
 
-lib/
-├── auth-context.tsx          # Contexte d'authentification
-└── permissions.ts            # Gestion des permissions par rôle
+## Test and Deploy
 
-hooks/
-├── use-permissions.ts        # Hook pour vérifier les permissions
-└── use-mobile.ts            # Hook pour responsive design
-\`\`\`
+Use the built-in continuous integration in GitLab.
 
-## Getting Started
+* [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
+* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
+* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
+* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
+* [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
 
-### Installation
+***
 
-\`\`\`bash
-# Cloner le projet
-git clone <repository>
+# Editing this README
 
-# Installer les dépendances
-npm install
-# ou
-pnpm install
+When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
 
-# Lancer le serveur de développement
-npm run dev
-# ou
-pnpm dev
-\`\`\`
+## Suggestions for a good README
 
-Ouvrir [http://localhost:3000](http://localhost:3000) dans votre navigateur.
+Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
 
-### Première Utilisation
+## Name
+Choose a self-explaining name for your project.
 
-1. **Accueil** : Visitez la page d'accueil
-2. **S'inscrire** : Créez un compte entreprise en tant qu'administrateur
-3. **Connexion** : Connectez-vous avec vos identifiants
-4. **Dashboard** : Accédez à votre tableau de bord personnalisé
-5. **Gestion d'équipe** : Invitez des employés via Settings > Gestion Utilisateurs
+## Description
+Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
 
-## Comptes de Test
+## Badges
+On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
 
-Pour tester les différents rôles :
+## Visuals
+Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
 
-\`\`\`
-Admin:
-Email: admin@buildstock.com
-Password: Password123!
+## Installation
+Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
 
-Chef de Chantier:
-Email: supervisor@buildstock.com
-Password: Password123!
-
-Ingénieur:
-Email: engineer@buildstock.com
-Password: Password123!
-\`\`\`
-
-## Technologie Utilisée
-
-- **Framework** : Next.js 16 (App Router)
-- **UI Components** : shadcn/ui
-- **Styling** : Tailwind CSS v4
-- **State Management** : React Context API
-- **Charts** : Recharts
-- **Icons** : Lucide React
-- **Forms** : React Hook Form (optionnel)
-- **Type Safety** : TypeScript
-
-## Fonctionnalités de Sécurité
-
-- ✅ Authentification par email/mot de passe
-- ✅ Gestion des rôles et permissions basée sur le contexte
-- ✅ Validation des entrées utilisateur
-- ✅ Protection des routes sensibles
-- ✅ Sessions utilisateur persistantes
-- ✅ Indicateur de force du mot de passe
-
-## Fonctionnalités Futures
-
-- Intégration base de données (Supabase/Neon)
-- API REST complète
-- Notifications en temps réel
-- Exports PDF/Excel
-- Mobile app native
-- Intégrations fournisseurs
-- Système de backup automatique
-- Analytics avancés
+## Usage
+Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
 
 ## Support
+Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
 
-Pour toute question ou problème, contactez notre équipe à support@buildstockpro.com
+## Roadmap
+If you have ideas for releases in the future, it is a good idea to list them in the README.
 
-## Licence
+## Contributing
+State if you are open to contributions and what your requirements are for accepting them.
 
-Copyright © 2025 BuildStock Pro. Tous droits réservés.
+For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+
+You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+
+## Authors and acknowledgment
+Show your appreciation to those who have contributed to the project.
+
+## License
+For open source projects, say how it is licensed.
+
+## Project status
+If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.

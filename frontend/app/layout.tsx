@@ -1,35 +1,47 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
-import { AuthProvider } from "@/lib/auth-context"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "BuildStock Pro - Gestion de Stocks et Calculs Structurels",
-  description: "Solution complète de gestion de stocks et calculs structurels pour l'industrie de la construction",
+  title: "BuildStock Pro - Construction Management",
+  description:
+    "Professional construction project management system with inventory tracking, cost management, and team collaboration.",
   generator: "v0.app",
+  keywords: ["construction", "project management", "inventory", "costs", "Morocco"],
   icons: {
     icon: [
+      {
+        url: "/icon-light-32x32.png",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/icon-dark-32x32.png",
+        media: "(prefers-color-scheme: dark)",
+      },
       {
         url: "/icon.svg",
         type: "image/svg+xml",
       },
     ],
+    apple: "/apple-icon.png",
   },
 }
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
-    <html lang="fr">
-      <body className="font-sans antialiased bg-white">
-        <AuthProvider>{children}</AuthProvider>
+    <html lang="en">
+      <body className={`font-sans antialiased`}>
+        {children}
+        <Analytics />
       </body>
     </html>
   )

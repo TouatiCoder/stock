@@ -4,6 +4,7 @@
       "dom",
       "dom.iterable",
       "esnext"
+    
     ],
     "allowJs": true,
     "target": "ES6",
@@ -33,10 +34,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "app/dashboard/page.tsx",
-    "app/costs/loading.tsx",
-    "app/costs/page.tsx",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    "emails/**/*.tsx" 
   ],
   "exclude": [
     "node_modules"

@@ -1,82 +1,98 @@
 "use client"
 
-import { Card } from "@/components/ui/card"
-import { Edit2, Trash2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { getSupabaseClient } from "@/lib/supabase/client"
+import type { InventoryItem } from "@/lib/types"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Edit2, Trash2, AlertCircle } from "lucide-react"
 
-interface InventoryListProps {
-  searchTerm: string
-  filterCategory: string
-}
+export function InventoryList() {
+  const [items, setItems] = useState<InventoryItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
 
-export function InventoryList({ searchTerm, filterCategory }: InventoryListProps) {
-  const materials = [
-    { id: 1, name: "Ciment Portland", category: "concrete", unit: "sacs", available: 250, minimum: 500, price: 85 },
-    { id: 2, name: "Acier HA 500", category: "steel", unit: "tonnes", available: 45, minimum: 100, price: 4200 },
-    { id: 3, name: "Sable Fin", category: "concrete", unit: "m³", available: 120, minimum: 200, price: 350 },
-    {
-      id: 4,
-      name: "Briques Creuses",
-      category: "finishing",
-      unit: "palette",
-      available: 80,
-      minimum: 150,
-      price: 1200,
-    },
-    { id: 5, name: "Tubes PVC", category: "electrical", unit: "mètres", available: 500, minimum: 300, price: 25 },
-  ]
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const supabase = getSupabaseClient()
+        const { data } = await supabase.from("inventory_items").select("*").order("name")
 
-  const filtered = materials.filter((m) => {
-    const matchSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchCategory = filterCategory === "all" || m.category === filterCategory
-    return matchSearch && matchCategory
-  })
+        if (data) setItems(data as InventoryItem[])
+      } catch (error) {
+        console.error("Error fetching inventory:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchItems()
+  }, [])
+
+  const filteredItems = items.filter(
+    (item) =>
+      item.name.toLowerCase().includes(search.toLowerCase()) || item.sku.toLowerCase().includes(search.toLowerCase()),
+  )
+
+  if (loading) {
+    return <div className="p-6 text-center text-slate-500">Loading inventory...</div>
+  }
 
   return (
-    <Card>
+    <div className="space-y-4">
+      <div className="p-6 border-b border-slate-200">
+        <Input
+          type="search"
+          placeholder="Search by name or SKU..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-md"
+        />
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Matériau</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Disponible</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Minimum</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Valeur Unitaire</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">État</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">SKU</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Category</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Quantity</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Unit Cost</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
-            {filtered.map((mat) => {
-              const isLow = mat.available < mat.minimum
-              const statusColor = isLow ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"
-              const statusText = isLow ? "Critique" : "Normal"
+          <tbody>
+            {filteredItems.map((item) => {
+              const isLowStock = item.quantity_on_hand <= item.reorder_level
               return (
-                <tr key={mat.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div>
-                      <p className="font-medium text-gray-900">{mat.name}</p>
-                      <p className="text-xs text-gray-500">{mat.unit}</p>
-                    </div>
+                <tr key={item.id} className="border-b border-slate-200 hover:bg-slate-50">
+                  <td className="px-6 py-4 text-sm font-medium text-slate-900">{item.name}</td>
+                  <td className="px-6 py-4 text-sm text-slate-500">{item.sku}</td>
+                  <td className="px-6 py-4 text-sm text-slate-500">{item.category}</td>
+                  <td className="px-6 py-4 text-sm text-slate-900">
+                    {item.quantity_on_hand} {item.unit}
                   </td>
-                  <td className="px-6 py-4 font-semibold text-gray-900">{mat.available}</td>
-                  <td className="px-6 py-4 text-gray-600">{mat.minimum}</td>
-                  <td className="px-6 py-4 text-gray-900">{mat.price} MAD</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}`}
-                    >
-                      {statusText}
-                    </span>
+                  <td className="px-6 py-4 text-sm text-slate-900">{item.unit_cost_mad.toLocaleString()} MAD</td>
+                  <td className="px-6 py-4 text-sm">
+                    {isLowStock ? (
+                      <Badge className="gap-1 bg-orange-100 text-orange-800">
+                        <AlertCircle size={14} />
+                        Low Stock
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-green-100 text-green-800">In Stock</Badge>
+                    )}
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <Edit2 size={16} className="text-gray-600" />
-                      </button>
-                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <Trash2 size={16} className="text-red-600" />
-                      </button>
-                    </div>
+                  <td className="px-6 py-4 text-sm space-x-2">
+                    <Button variant="ghost" size="sm">
+                      <Edit2 size={16} />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-red-600">
+                      <Trash2 size={16} />
+                    </Button>
                   </td>
                 </tr>
               )
@@ -84,6 +100,6 @@ export function InventoryList({ searchTerm, filterCategory }: InventoryListProps
           </tbody>
         </table>
       </div>
-    </Card>
+    </div>
   )
 }

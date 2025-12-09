@@ -1,22 +1,9 @@
 "use client"
-
 import Link from "next/link"
-import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { BarChart3, Package, Calculator, DollarSign, Users, Zap, CheckCircle, ArrowRight } from "lucide-react"
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
 
 export default function Home() {
-  const { user } = useAuth()
-  const router = useRouter()
-
-  // Redirection automatique si connecté
-  useEffect(() => {
-    if (user) {
-      router.push("/dashboard")
-    }
-  }, [user, router])
 
   const features = [
     {
@@ -84,10 +71,10 @@ export default function Home() {
             <h1 className="text-2xl font-bold text-gray-900">BuildStock Pro</h1>
           </div>
           <div className="flex gap-3">
-            <Link href="/login">
+            <Link href="/auth/login">
               <Button variant="outline">Se connecter</Button>
             </Link>
-            <Link href="/signup">
+            <Link href="/auth/signup">
               <Button>S'inscrire</Button>
             </Link>
           </div>
@@ -107,9 +94,8 @@ export default function Home() {
                 de la construction. Simplifiez votre gestion avec un seul outil.
               </p>
             </div>
-
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/signup">
+              <Link href="/auth/signup">
                 <Button className="px-8 py-3 text-lg">Commencer gratuitement</Button>
               </Link>
               <Link href="#features">
@@ -118,7 +104,6 @@ export default function Home() {
                 </Button>
               </Link>
             </div>
-
             {/* Trust Badges */}
             <div className="flex flex-wrap items-center justify-center gap-6 pt-8">
               <div className="flex items-center gap-2 text-gray-600">
@@ -147,7 +132,6 @@ export default function Home() {
               Tous les outils nécessaires pour optimiser votre gestion d'entreprise
             </p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, i) => {
               const Icon = feature.icon
@@ -175,7 +159,6 @@ export default function Home() {
             <h3 className="text-3xl sm:text-4xl font-bold text-gray-900">Avantages Clés</h3>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">Transformez votre façon de travailler</p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             {[
               {
@@ -216,7 +199,6 @@ export default function Home() {
             <h3 className="text-3xl sm:text-4xl font-bold text-gray-900">Avis de nos Clients</h3>
             <p className="text-xl text-gray-600">Ce que pensent les professionnels de BuildStock Pro</p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, i) => (
               <div key={i} className="p-6 bg-gray-50 rounded-lg border border-gray-200">
@@ -245,7 +227,7 @@ export default function Home() {
           <h3 className="text-3xl sm:text-4xl font-bold text-white mb-4">Prêt à transformer votre gestion ?</h3>
           <p className="text-xl text-blue-100 mb-8">Rejoignez les entreprises qui font confiance à BuildStock Pro</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/signup">
+            <Link href="/auth/signup">
               <Button className="px-8 py-3 text-lg bg-white text-blue-600 hover:bg-gray-100">
                 Commencer maintenant
               </Button>

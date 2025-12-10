@@ -26,15 +26,10 @@ export function Sidebar({ user }: SidebarProps) {
       href: "/dashboard/calculations",
       icon: Calculator,
       label: "Calculations",
-      roles: ["admin", "chef_de_chantier", "ingenieur_structure"], // Added chef_de_chantier to roles
+      roles: ["admin", "ingenieur_structure"],
     },
     { href: "/dashboard/costs", icon: DollarSign, label: "Costs", roles: ["admin", "chef_de_chantier"] },
-    { 
-      href: "/dashboard/users", 
-      icon: Users, 
-      label: "Users", 
-      roles: ["admin", "chef_de_chantier", "ingenieur_structure"], // Added all roles
-    },
+    { href: "/dashboard/users", icon: Users, label: "Users", roles: ["admin"] },
     {
       href: "/dashboard/settings",
       icon: Settings,

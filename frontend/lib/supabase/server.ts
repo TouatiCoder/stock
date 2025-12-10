@@ -1,11 +1,13 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * Crée un client Supabase côté serveur
+ * Crée un client Supabase côté serveur pour Server Components
+ * Usage: Server Components, Server Actions
  */
 export async function createClient() {
-  const cookieStore = await cookies(); // 👈 await obligatoire
+  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,6 +35,84 @@ export async function createClient() {
           }
         },
       },
+    }
+  );
+}
+
+/**
+ * Fonction spéciale pour le middleware
+ * Usage: middleware.ts uniquement
+ */
+export function createMiddlewareClient(request: NextRequest) {
+  let response = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  return { supabase, response };
+}
+
+/**
+ * Crée un client Supabase pour les API routes
+ * Usage: /app/api/*/
+ 
+export function createApiClient() {
+  // ✅ CORRECTION : Même pour les API, il faut une config cookies minimale
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        // Configuration minimale pour les API routes
+        get() {
+          return undefined; // Les API n'ont pas besoin de lire les cookies
+        },
+        set() {
+          // Les API ne définissent généralement pas de cookies
+        },
+        remove() {
+          // Les API ne suppriment généralement pas de cookies
+        },
+      },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
+      }
+    }
+  );
+}
+
+/**
+ * Alternative : Créer un client simple sans cookies (si l'autre ne fonctionne pas)
+ */
+export function createApiClientSimple() {
+  // Solution alternative sans dépendance à @supabase/ssr
+  const { createClient } = require('@supabase/supabase-js');
+  
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
+      }
     }
   );
 }

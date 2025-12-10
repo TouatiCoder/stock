@@ -13,8 +13,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Plus } from "lucide-react"
+import type { Project } from "@/lib/types"
 
-export function NewProjectDialog() {
+interface NewProjectDialogProps {
+  onProjectCreated?: (project: Project) => void
+}
+
+export function NewProjectDialog({ onProjectCreated }: NewProjectDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -34,27 +39,41 @@ export function NewProjectDialog() {
 
     setLoading(true)
     try {
-
       const supabase = getSupabaseClient()
       const {
         data: { user },
-     } = await supabase.auth.getUser()
-     if (!user) throw new Error("Not authenticated")
-      const { error } = await supabase.from("projects").insert([
-        {
-          name: formData.name,
-          location: formData.location,
-          budget_mad: Number.parseFloat(formData.budget_mad) || 0,
-          start_date: formData.start_date || null,
-          end_date: formData.end_date || null,
-          description: formData.description,
-          created_by: user.id,
-          assigned_to: [user.id],
-          status: "active",
-        },
-      ])
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
+      const { data: insertedData, error } = await supabase
+        .from("projects")
+        .insert([
+          {
+            name: formData.name,
+            location: formData.location,
+            budget_mad: Number.parseFloat(formData.budget_mad) || 0,
+            start_date: formData.start_date || null,
+            end_date: formData.end_date || null,
+            description: formData.description,
+            created_by: user.id,
+            assigned_to: [user.id],
+            status: "active",
+          },
+        ])
+        .select()
+        .single() // récupère le projet inséré
+        const project: Project | null = insertedData ?? null;
+
+if (project && onProjectCreated) {
+  onProjectCreated(project)
+}
 
       if (error) throw error
+
+      // Mettre à jour la liste côté client
+      if (insertedData && onProjectCreated) {
+        onProjectCreated(insertedData)
+      }
 
       setFormData({
         name: "",
@@ -65,8 +84,10 @@ export function NewProjectDialog() {
         description: "",
       })
       setOpen(false)
-    } catch (error) {
-      console.error("Error creating project:", error)
+      alert("Project created successfully!")
+    } catch (err) {
+      console.error("Error creating project:", err)
+      alert("Failed to create project")
     } finally {
       setLoading(false)
     }
@@ -95,7 +116,6 @@ export function NewProjectDialog() {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
           </div>
-
           <div className="space-y-2">
             <label className="text-sm font-medium">Location</label>
             <Input
@@ -104,7 +124,6 @@ export function NewProjectDialog() {
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
             />
           </div>
-
           <div className="space-y-2">
             <label className="text-sm font-medium">Budget (MAD)</label>
             <Input
@@ -114,7 +133,6 @@ export function NewProjectDialog() {
               onChange={(e) => setFormData({ ...formData, budget_mad: e.target.value })}
             />
           </div>
-
           <div className="space-y-2">
             <label className="text-sm font-medium">Start Date</label>
             <Input
@@ -123,7 +141,6 @@ export function NewProjectDialog() {
               onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
             />
           </div>
-
           <div className="space-y-2">
             <label className="text-sm font-medium">End Date</label>
             <Input
@@ -132,7 +149,6 @@ export function NewProjectDialog() {
               onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
             />
           </div>
-
           <div className="space-y-2 col-span-2">
             <label className="text-sm font-medium">Description</label>
             <Input
@@ -143,7 +159,7 @@ export function NewProjectDialog() {
           </div>
         </div>
 
-        <div className="flex gap-2 justify-end">
+        <div className="flex gap-2 justify-end mt-4">
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>

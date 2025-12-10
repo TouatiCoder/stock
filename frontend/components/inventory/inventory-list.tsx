@@ -1,71 +1,54 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { useState } from "react"
 import type { InventoryItem } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Edit2, Trash2, AlertCircle } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-export function InventoryList() {
-  const [items, setItems] = useState<InventoryItem[]>([])
-  const [loading, setLoading] = useState(true)
+interface InventoryListProps {
+  items: InventoryItem[]
+  onItemAdded?: (item: InventoryItem) => void // optionnel si tu veux gérer ajout ici
+}
+
+export function InventoryList({ items }: InventoryListProps) {
   const [search, setSearch] = useState("")
 
-  useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        const supabase = getSupabaseClient()
-        const { data } = await supabase.from("inventory_items").select("*").order("name")
-
-        if (data) setItems(data as InventoryItem[])
-      } catch (error) {
-        console.error("Error fetching inventory:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchItems()
-  }, [])
-
   const filteredItems = items.filter(
-    (item) =>
-      item.name.toLowerCase().includes(search.toLowerCase()) || item.sku.toLowerCase().includes(search.toLowerCase()),
+    item =>
+      item.name.toLowerCase().includes(search.toLowerCase()) ||
+      item.sku.toLowerCase().includes(search.toLowerCase())
   )
-
-  if (loading) {
-    return <div className="p-6 text-center text-slate-500">Loading inventory...</div>
-  }
 
   return (
     <div className="space-y-4">
-      <div className="p-6 border-b border-slate-200">
+      <div className="p-4 border-b border-slate-200">
         <Input
           type="search"
           placeholder="Search by name or SKU..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={e => setSearch(e.target.value)}
           className="max-w-md"
         />
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full border-collapse">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">SKU</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Category</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Quantity</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Unit Cost</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 uppercase tracking-wide">Name</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 uppercase tracking-wide">SKU</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 uppercase tracking-wide">Category</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 uppercase tracking-wide">Quantity</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 uppercase tracking-wide">Unit Cost</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 uppercase tracking-wide">Status</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredItems.map((item) => {
+            {filteredItems.map(item => {
               const isLowStock = item.quantity_on_hand <= item.reorder_level
               return (
                 <tr key={item.id} className="border-b border-slate-200 hover:bg-slate-50">
@@ -78,21 +61,28 @@ export function InventoryList() {
                   <td className="px-6 py-4 text-sm text-slate-900">{item.unit_cost_mad.toLocaleString()} MAD</td>
                   <td className="px-6 py-4 text-sm">
                     {isLowStock ? (
-                      <Badge className="gap-1 bg-orange-100 text-orange-800">
-                        <AlertCircle size={14} />
-                        Low Stock
+                      <Badge className="inline-flex items-center gap-1 bg-orange-100 text-orange-800">
+                        <AlertCircle size={14} /> Low Stock
                       </Badge>
                     ) : (
                       <Badge className="bg-green-100 text-green-800">In Stock</Badge>
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm space-x-2">
-                    <Button variant="ghost" size="sm">
-                      <Edit2 size={16} />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-red-600">
-                      <Trash2 size={16} />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="sm"><Edit2 size={16} /></Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit this item</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-red-600"><Trash2 size={16} /></Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete this item</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </td>
                 </tr>
               )

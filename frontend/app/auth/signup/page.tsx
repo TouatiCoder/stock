@@ -48,7 +48,7 @@ export default function SignupPage() {
             id: data.user.id,
             email,
             full_name: fullName,
-            role: "chef_de_chantier", // Default role
+            role: "admin", // Default role
           },
         ])
 

@@ -1,78 +1,71 @@
-// components/dashboard/recent-activity.tsx (corrigé)
 "use client"
 
 import { useEffect, useState } from "react"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { AlertCircle } from "lucide-react"
 
+// Props : userId actuel
 interface RecentActivityProps {
   userId: string
 }
 
+// Type pour les données récupérées depuis Supabase
+interface ActivityFromDB {
+  id: string
+  user_id: string
+  action: string
+  description: string | null
+  entity_type: string | null
+  entity_id: string | null
+  metadata: any
+  created_at: string
+}
+
+// Type pour le composant
 interface Activity {
-  id: number
+  id: string
   action: string
   description: string
   createdAt: string
+  entityType?: string | null
+  entityId?: string | null
+  metadata?: any
 }
 
 export function RecentActivity({ userId }: RecentActivityProps) {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
   const supabase = getSupabaseClient()
 
   useEffect(() => {
     async function fetchActivities() {
       try {
         setError(null)
-        
-        // Essayer de récupérer depuis la table 'activities'
+
         const { data, error } = await supabase
           .from("activities")
-          .select("id, action, description, created_at")
+          .select("*")
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(10)
 
-        if (error) {
-          // Si la table n'existe pas, utiliser des données de démonstration
-          console.warn("Activities table error (using demo data):", error.message)
-          
-          // Données de démonstration
-          const demoActivities: Activity[] = [
-            {
-              id: 1,
-              action: "Project Created",
-              description: "New construction project 'Office Building' added",
-              createdAt: new Date().toLocaleString(),
-            },
-            {
-              id: 2,
-              action: "Expense Logged",
-              description: "Cement purchase - 1500 MAD",
-              createdAt: new Date(Date.now() - 86400000).toLocaleString(), // Hier
-            },
-            {
-              id: 3,
-              action: "Inventory Updated",
-              description: "Steel beams stock replenished",
-              createdAt: new Date(Date.now() - 172800000).toLocaleString(), // Avant-hier
-            },
-          ]
-          
-          setActivities(demoActivities)
-          return
-        }
+        if (error) throw error
 
         if (data) {
           setActivities(
-            data.map((a: any) => ({
+            data.map((a: ActivityFromDB) => ({
               id: a.id,
               action: a.action,
-              description: a.description,
-              createdAt: new Date(a.created_at).toLocaleString(),
+              description: a.description || "",
+              createdAt: new Date(a.created_at).toLocaleString("fr-MA", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }),
+              entityType: a.entity_type,
+              entityId: a.entity_id,
+              metadata: a.metadata,
             }))
           )
         } else {
@@ -108,11 +101,9 @@ export function RecentActivity({ userId }: RecentActivityProps) {
       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
         <div className="flex items-center gap-2 text-yellow-800 mb-2">
           <AlertCircle className="h-4 w-4" />
-          <p className="text-sm font-medium">Demo Mode</p>
+          <p className="text-sm font-medium">Error</p>
         </div>
-        <p className="text-sm text-yellow-700">
-          Activities table not available. Showing sample data.
-        </p>
+        <p className="text-sm text-yellow-700">{error}</p>
       </div>
     )
   }

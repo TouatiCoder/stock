@@ -26,7 +26,9 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (userError || !user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+      return NextResponse.json({ 
+        error: "User not found. Please sign in with password first." 
+      }, { status: 404 })
     }
 
     // Récupérer les credentials existantes
@@ -35,10 +37,13 @@ export async function GET(request: NextRequest) {
       .select("*")
       .eq("user_id", user.id)
 
+    // ✅ CORRECTION : userID doit être Uint8Array, pas string
+    const userID = new Uint8Array(Buffer.from(user.id))
+
     const options = await generateRegistrationOptions({
       rpName: "BuildStock Pro",
       rpID,
-      userID: user.id,
+      userID, // <-- Uint8Array maintenant
       userName: user.email,
       userDisplayName: user.name || user.email,
       attestationType: "none" as const,
@@ -67,7 +72,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error generating registration options:", error)
     return NextResponse.json(
-      { error: "Failed to generate registration options" },
+      { error: error instanceof Error ? error.message : "Failed to generate registration options" },
       { status: 500 }
     )
   }
@@ -122,16 +127,39 @@ export async function POST(request: NextRequest) {
 
     const { registrationInfo } = verification
 
+    // ✅ CORRECTION : Les propriétés sont maintenant dans registrationInfo.credential
+    // Pour debug, log la structure complète
+    console.log("Registration info structure:", JSON.stringify(registrationInfo, null, 2))
+    
+    // Accès sécurisé avec fallback
+    const credential = registrationInfo.credential
+    
+    if (!credential) {
+      throw new Error("Credential not found in registration info")
+    }
+
+    const credentialID = credential.id
+    const credentialPublicKey = credential.publicKey
+    const counter = credential.counter || 0
+
+    if (!credentialID || !credentialPublicKey) {
+      throw new Error("Invalid credential structure")
+    }
+
+    // Convertir en base64url pour stockage
+    const credentialIDBase64 = Buffer.from(credentialID).toString("base64url")
+    const publicKeyBase64 = Buffer.from(credentialPublicKey).toString("base64url")
+
     // Enregistrer la nouvelle credential
     await supabase.from("webauthn_credentials").insert({
       user_id: user.id,
-      credential_id: Buffer.from(registrationInfo.credentialID).toString("base64url"),
-      public_key: Buffer.from(registrationInfo.credentialPublicKey).toString("base64url"),
-      counter: registrationInfo.counter,
+      credential_id: credentialIDBase64,
+      public_key: publicKeyBase64,
+      counter: counter,
       transports: registrationResponse.response.transports 
         ? JSON.stringify(registrationResponse.response.transports)
         : null,
-      device_type: "platform", // ou "cross-platform" pour les clés physiques
+      device_type: "platform",
     })
 
     // Supprimer le challenge
@@ -140,7 +168,10 @@ export async function POST(request: NextRequest) {
       .delete()
       .eq("id", challengeData.id)
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true,
+      message: "Passkey registered successfully"
+    })
   } catch (error) {
     console.error("Error verifying registration:", error)
     return NextResponse.json(

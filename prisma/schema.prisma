@@ -1,0 +1,687 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id        String   @id @default(uuid()) @db.VarChar(255)
+  name      String   @db.VarChar(255)
+  email     String?  @db.VarChar(255)
+  siret     String?  @db.VarChar(100)
+  phone     String?  @db.VarChar(20)
+  address   String?  @db.VarChar(255)
+  city      String?  @db.VarChar(100)
+  postalCode String? @map("postal_code") @db.VarChar(20)
+  taxRate   Decimal? @map("tax_rate") @db.Decimal(5, 2)
+  bankInfo  String?  @map("bank_info") @db.Text
+  ice       String?  @db.VarChar(100)
+  if_id     String?  @db.VarChar(100)
+  subscriptionPaymentMethod String? @map("subscription_payment_method") @db.VarChar(50)
+  currency  String?  @default("MAD") @db.VarChar(10)
+  country   String?  @default("Maroc") @db.VarChar(100)
+  timezone  String?  @default("Africa/Casablanca") @db.VarChar(50)
+  plan      String?  @default("free") @db.VarChar(50)
+  isActive  Boolean  @default(true) @map("is_active")
+  suspendedAt DateTime? @map("suspended_at") @db.DateTime(0)
+  suspendedReason String? @map("suspended_reason") @db.VarChar(255)
+  
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @map("updated_at") @db.DateTime(0)
+
+  // العلاقات
+  users          User[]
+  projects       Project[]
+  materials      Material[]
+  warehouses     Warehouse[]
+  suppliers      Supplier[]
+  purchaseOrders PurchaseOrder[]
+  invitations    Invitation[]
+  platformSubscription PlatformSubscription?
+  subscriptions Subscription[]
+  subscriptionStatusAudits SubscriptionStatusAudit[]
+  featureUsages FeatureUsage[]
+  billingAccount BillingAccount?
+  billingExternalSubscription BillingExternalSubscription?
+  stripeWebhookEvents StripeWebhookEvent[]
+  billingCheckoutSessions BillingCheckoutSession[]
+  billingJobRuns BillingJobRun[]
+  platformPayments PlatformPayment[]
+  platformStatusEvents PlatformCompanyStatusEvent[]
+  toolCalculations ToolCalculation[]
+  
+  // ✅ أضف هذا السطر لحل المشكلة
+  inventory      Inventory[]  
+
+  @@map("companies")
+}
+
+model PaymentProvider {
+  id              String   @id @default(uuid()) @db.VarChar(255)
+  providerCode    String   @unique @map("provider_code") @db.VarChar(30) // stripe | paypal
+  isEnabled       Boolean  @default(false) @map("is_enabled")
+  mode            String   @default("test") @db.VarChar(10) // test | live
+  configEncrypted String?  @map("config_encrypted") @db.LongText
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime @map("updated_at") @db.DateTime(0)
+
+  @@map("payment_providers")
+}
+
+model PlatformSetting {
+  id        String   @id @default(uuid()) @db.VarChar(255)
+  key       String   @unique @db.VarChar(100)
+  value     String   @db.VarChar(255)
+  updatedAt DateTime @map("updated_at") @db.DateTime(0)
+
+  @@map("platform_settings")
+}
+
+model Plan {
+  id        String   @id @default(uuid()) @db.VarChar(255)
+  code      String   @unique @db.VarChar(50)
+  name      String   @db.VarChar(100)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @map("updated_at") @db.DateTime(0)
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model PlanFeature {
+  id          String   @id @default(uuid()) @db.VarChar(255)
+  planId      String   @map("plan_id") @db.VarChar(255)
+  featureCode String   @map("feature_code") @db.VarChar(100)
+  limitValue  Int?     @map("limit_value")
+  enabled     Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @map("updated_at") @db.DateTime(0)
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureCode])
+  @@index([featureCode])
+  @@map("plan_features")
+}
+
+model Subscription {
+  id               String    @id @default(uuid()) @db.VarChar(255)
+  companyId        String    @map("company_id") @db.VarChar(255)
+  planId           String    @map("plan_id") @db.VarChar(255)
+  status           String    @default("active") @db.VarChar(50) // free | active | trialing | cancelled | past_due
+  trialEndsAt      DateTime? @map("trial_ends_at") @db.DateTime(0)
+  currentPeriodEnd DateTime? @map("current_period_end") @db.DateTime(0)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime  @map("updated_at") @db.DateTime(0)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan    Plan    @relation(fields: [planId], references: [id], onDelete: Restrict)
+  statusAudits SubscriptionStatusAudit[]
+
+  @@index([companyId, createdAt])
+  @@index([companyId, status])
+  @@map("subscriptions")
+}
+
+model SubscriptionStatusAudit {
+  id             String   @id @default(uuid()) @db.VarChar(255)
+  subscriptionId String   @map("subscription_id") @db.VarChar(255)
+  companyId      String   @map("company_id") @db.VarChar(255)
+  oldStatus      String   @map("old_status") @db.VarChar(50)
+  newStatus      String   @map("new_status") @db.VarChar(50)
+  reason         String   @db.VarChar(255)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+  @@index([subscriptionId, createdAt])
+  @@map("subscription_status_audits")
+}
+
+model BillingAccount {
+  id               String   @id @default(uuid()) @db.VarChar(255)
+  companyId        String   @unique @map("company_id") @db.VarChar(255)
+  stripeCustomerId String   @unique @map("stripe_customer_id") @db.VarChar(255)
+  defaultCurrency  String   @default("usd") @map("default_currency") @db.VarChar(10)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime @map("updated_at") @db.DateTime(0)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("billing_accounts")
+}
+
+model BillingPlanPrice {
+  id              String   @id @default(uuid()) @db.VarChar(255)
+  planCode        String   @map("plan_code") @db.VarChar(50)
+  billingInterval String   @map("billing_interval") @db.VarChar(20) // month | year
+  currency        String   @db.VarChar(10)
+  stripeProductId String   @map("stripe_product_id") @db.VarChar(255)
+  stripePriceId   String   @unique @map("stripe_price_id") @db.VarChar(255)
+  unitAmountCents Int?     @map("unit_amount_cents")
+  isActive        Boolean  @default(true) @map("is_active")
+  version         Int      @default(1)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime @map("updated_at") @db.DateTime(0)
+
+  @@index([planCode, billingInterval, currency, isActive])
+  @@map("billing_plan_prices")
+}
+
+model BillingExternalSubscription {
+  id                 String    @id @default(uuid()) @db.VarChar(255)
+  companyId          String    @unique @map("company_id") @db.VarChar(255)
+  stripeSubscriptionId String  @unique @map("stripe_subscription_id") @db.VarChar(255)
+  stripeCustomerId   String    @map("stripe_customer_id") @db.VarChar(255)
+  stripePriceId      String?   @map("stripe_price_id") @db.VarChar(255)
+  status             String    @db.VarChar(50)
+  currentPeriodEnd   DateTime? @map("current_period_end") @db.DateTime(0)
+  cancelAtPeriodEnd  Boolean   @default(false) @map("cancel_at_period_end")
+  lastEventCreatedAt DateTime? @map("last_event_created_at") @db.DateTime(0)
+  lastEventId        String?   @map("last_event_id") @db.VarChar(255)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt          DateTime  @map("updated_at") @db.DateTime(0)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([stripeCustomerId, updatedAt])
+  @@map("billing_subscriptions_external")
+}
+
+model StripeWebhookEvent {
+  id               String    @id @default(uuid()) @db.VarChar(255)
+  eventId          String    @unique @map("event_id") @db.VarChar(255)
+  eventType        String    @map("event_type") @db.VarChar(100)
+  stripeObjectId   String?   @map("stripe_object_id") @db.VarChar(255)
+  companyId        String?   @map("company_id") @db.VarChar(255)
+  payloadJson      Json      @map("payload_json")
+  processingStatus String    @default("pending") @map("processing_status") @db.VarChar(30) // pending | processing | processed | failed | dead_letter
+  attemptCount     Int       @default(0) @map("attempt_count")
+  receivedAt       DateTime  @default(now()) @map("received_at") @db.Timestamp(0)
+  processedAt      DateTime? @map("processed_at") @db.DateTime(0)
+  nextRetryAt      DateTime? @map("next_retry_at") @db.DateTime(0)
+  lastError        String?   @map("last_error") @db.VarChar(1000)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime  @map("updated_at") @db.DateTime(0)
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([processingStatus, nextRetryAt])
+  @@index([companyId, createdAt])
+  @@index([processingStatus, updatedAt])
+  @@index([receivedAt])
+  @@map("stripe_webhook_events")
+}
+
+model BillingCheckoutSession {
+  id                     String   @id @default(uuid()) @db.VarChar(255)
+  companyId              String   @map("company_id") @db.VarChar(255)
+  stripeCheckoutSessionId String  @unique @map("stripe_checkout_session_id") @db.VarChar(255)
+  stripeCustomerId       String?  @map("stripe_customer_id") @db.VarChar(255)
+  targetPlanCode         String   @map("target_plan_code") @db.VarChar(50)
+  targetInterval         String   @map("target_interval") @db.VarChar(20)
+  idempotencyKey         String   @map("idempotency_key") @db.VarChar(255)
+  status                 String   @default("created") @db.VarChar(30) // created | completed | expired
+  expiresAt              DateTime? @map("expires_at") @db.DateTime(0)
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt              DateTime @map("updated_at") @db.DateTime(0)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+  @@index([idempotencyKey, companyId])
+  @@index([createdAt])
+  @@map("billing_checkout_sessions")
+}
+
+model BillingJobRun {
+  id          String    @id @default(uuid()) @db.VarChar(255)
+  jobName     String    @map("job_name") @db.VarChar(100)
+  status      String    @db.VarChar(30) // success | failed
+  companyId   String?   @map("company_id") @db.VarChar(255)
+  startedAt   DateTime  @map("started_at") @db.DateTime(0)
+  finishedAt  DateTime  @map("finished_at") @db.DateTime(0)
+  summaryJson Json?     @map("summary_json")
+  errorMessage String?  @map("error_message") @db.VarChar(1000)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime  @map("updated_at") @db.DateTime(0)
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([jobName, finishedAt])
+  @@index([status, finishedAt])
+  @@index([companyId, finishedAt])
+  @@map("billing_job_runs")
+}
+
+model FeatureUsage {
+  id         String    @id @default(uuid()) @db.VarChar(255)
+  companyId  String    @map("company_id") @db.VarChar(255)
+  featureCode String   @map("feature_code") @db.VarChar(100)
+  usageCount Int       @default(0) @map("usage_count")
+  resetAt    DateTime? @map("reset_at") @db.DateTime(0)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime  @map("updated_at") @db.DateTime(0)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, featureCode])
+  @@index([featureCode])
+  @@map("feature_usages")
+}
+
+// 2. Users
+model User {
+  id               String    @id @default(uuid()) @db.VarChar(255)
+  email            String    @unique @db.VarChar(255)
+  password         String    @map("password_hash") @db.VarChar(255) // ربط password بـ password_hash
+  authMethod       String    @default("password_only") @map("auth_method") @db.VarChar(30) // password_only | biometric_only | biometric_password
+  firstName        String    @map("first_name") @db.VarChar(100)
+  lastName         String    @map("last_name") @db.VarChar(100)
+  role             String    @db.VarChar(50) // admin, site_manager, etc.
+  phone            String?   @db.VarChar(20)
+  active           Boolean   @default(true)
+  isPlatformAdmin  Boolean   @default(false) @map("is_platform_admin")
+  lastLoginAt      DateTime? @map("last_login_at") @db.DateTime(0)
+  
+  // حقول ضرورية لنظام الدعوات واستعادة كلمة المرور (غير موجودة في SQL الأصلي)
+  resetToken       String?   @unique @map("reset_token") @db.VarChar(255)
+  resetTokenExpiry DateTime? @map("reset_token_expiry") @db.DateTime(0)
+
+  companyId        String    @map("company_id") @db.VarChar(255)
+  
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime  @map("updated_at") @db.DateTime(0)
+
+  company                Company         @relation(fields: [companyId], references: [id])
+  projectsAsManager      Project[]       @relation("ProjectSiteManager")
+  projectsAsEngineer     Project[]       @relation("ProjectEngineer")
+  createdPurchaseOrders  PurchaseOrder[] @relation("CreatedBy")
+  invitationsSent        Invitation[]    @relation("InvitedBy")
+  platformStatusEvents   PlatformCompanyStatusEvent[]
+  platformSettingAudits  PlatformSettingAudit[]
+  webauthnCredentials    WebAuthnCredential[]
+  webauthnChallenges     WebAuthnChallenge[]
+  toolCalculations       ToolCalculation[]
+
+  @@map("users")
+}
+
+model PlatformSettingAudit {
+  id         String   @id @default(uuid()) @db.VarChar(255)
+  settingKey String   @map("setting_key") @db.VarChar(100)
+  oldValue   String?  @map("old_value") @db.VarChar(255)
+  newValue   String   @map("new_value") @db.VarChar(255)
+  actorUserId String  @map("actor_user_id") @db.VarChar(255)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  actor User @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([settingKey, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("platform_setting_audits")
+}
+
+// 3. Projects
+model Project {
+  id                   String    @id @default(uuid()) @db.VarChar(255)
+  name                 String    @db.VarChar(255)
+  description          String?   @db.Text
+  clientName           String?   @map("client_name") @db.VarChar(255)
+  clientEmail          String?   @map("client_email") @db.VarChar(255)
+  clientPhone          String?   @map("client_phone") @db.VarChar(50)
+  
+  address              String?   @db.VarChar(255)
+  city                 String?   @db.VarChar(100)
+  postalCode           String?   @map("postal_code") @db.VarChar(20)
+  projectType          String?   @map("project_type") @db.VarChar(50)
+  
+  status               String    @default("planning") @db.VarChar(50)
+  startDate            DateTime? @map("start_date") @db.Date
+  endDate              DateTime? @map("end_date") @db.Date
+  totalBudget          Decimal?  @map("total_budget") @db.Decimal(15, 2)
+  currentCost          Decimal?  @default(0) @map("current_cost") @db.Decimal(15, 2)
+  
+  companyId            String    @map("company_id") @db.VarChar(255)
+  siteManagerId        String?   @map("site_manager_id") @db.VarChar(255)
+  structuralEngineerId String?   @map("structural_engineer_id") @db.VarChar(255)
+
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt            DateTime  @map("updated_at") @db.DateTime(0)
+
+  company            Company @relation(fields: [companyId], references: [id])
+  siteManager        User?   @relation("ProjectSiteManager", fields: [siteManagerId], references: [id])
+  structuralEngineer User?   @relation("ProjectEngineer", fields: [structuralEngineerId], references: [id])
+  toolCalculations   ToolCalculation[]
+
+  @@map("projects")
+}
+
+model ProjectExpense {
+  id               String   @id @default(uuid()) @db.VarChar(255)
+  companyId        String   @map("company_id") @db.VarChar(255)
+  projectId        String   @map("project_id") @db.VarChar(255)
+  supplierInvoiceId String? @map("supplier_invoice_id") @db.VarChar(255)
+  category         String   @db.VarChar(50)
+  description      String?  @db.VarChar(255)
+  amount           Decimal  @db.Decimal(12, 2)
+  createdBy        String?  @map("created_by") @db.VarChar(255)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime @map("updated_at") @db.DateTime(0)
+
+  @@index([companyId, projectId, createdAt])
+  @@index([projectId, createdAt])
+  @@map("project_expenses")
+}
+
+// 4. Materials
+model Material {
+  id          String   @id @default(uuid()) @db.VarChar(255)
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  unit        String   @db.VarChar(50)
+  unitPrice   Decimal? @map("unit_price") @db.Decimal(10, 2)
+  category    String?  @db.VarChar(100)
+  
+  supplierId  String?  @map("supplier_id") @db.VarChar(255)
+  companyId   String   @map("company_id") @db.VarChar(255)
+
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @map("updated_at") @db.DateTime(0)
+
+  company            Company             @relation(fields: [companyId], references: [id])
+  supplier           Supplier?           @relation(fields: [supplierId], references: [id])
+  inventory          Inventory[]
+  purchaseOrderItems PurchaseOrderItem[]
+
+  @@map("materials")
+}
+
+// 5. Suppliers
+model Supplier {
+  id            String   @id @default(uuid()) @db.VarChar(255)
+  name          String   @db.VarChar(255)
+  contactPerson String?  @map("contact_person") @db.VarChar(255)
+  email         String?  @db.VarChar(255)
+  phone         String?  @db.VarChar(20)
+  address       String?  @db.Text
+  isActive      Boolean  @default(true) @map("is_active")
+  
+  companyId     String   @map("company_id") @db.VarChar(255)
+
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime @map("updated_at") @db.DateTime(0)
+
+  company        Company         @relation(fields: [companyId], references: [id])
+  materials      Material[]
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+// 6. Warehouses
+model Warehouse {
+  id        String   @id @default(uuid()) @db.VarChar(255)
+  name      String   @db.VarChar(255)
+  location  String?  @db.VarChar(255)
+  capacity  Decimal? @db.Decimal(10, 2)
+  isMain    Boolean  @default(false) @map("is_main")
+  isActive  Boolean  @default(true) @map("is_active")
+  
+  companyId String   @map("company_id") @db.VarChar(255)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @map("updated_at") @db.DateTime(0)
+
+  company   Company     @relation(fields: [companyId], references: [id])
+  inventory Inventory[]
+
+  @@map("warehouses")
+}
+
+// 7. Inventory
+model Inventory {
+  id           String   @id @default(uuid()) @db.VarChar(255)
+  quantity     Decimal  @db.Decimal(10, 2)
+  minThreshold Decimal? @default(0) @map("min_threshold") @db.Decimal(10, 2)
+  maxThreshold Decimal? @map("max_threshold") @db.Decimal(10, 2)
+  
+  materialId   String   @map("material_id") @db.VarChar(255)
+  warehouseId  String?  @map("warehouse_id") @db.VarChar(255)
+  companyId    String   @map("company_id") @db.VarChar(255)
+
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime @map("updated_at") @db.DateTime(0)
+
+  material  Material   @relation(fields: [materialId], references: [id])
+  warehouse Warehouse? @relation(fields: [warehouseId], references: [id])
+  company   Company    @relation(fields: [companyId], references: [id])
+
+  @@map("inventory")
+}
+
+model StockMovement {
+  id           String   @id @default(uuid()) @db.VarChar(255)
+  projectId    String?  @map("project_id") @db.VarChar(255)
+  materialId   String   @map("material_id") @db.VarChar(255)
+  userId       String?  @map("user_id") @db.VarChar(255)
+  movementType String   @map("movement_type") @db.VarChar(20)
+  quantity     Decimal  @db.Decimal(10, 2)
+  description  String?  @db.VarChar(255)
+  movementDate DateTime @map("movement_date") @db.DateTime(0)
+
+  @@index([materialId, movementDate])
+  @@index([projectId, movementDate])
+  @@map("stock_movements")
+}
+
+// 8. Purchase Orders
+model PurchaseOrder {
+  id               String    @id @default(uuid()) @db.VarChar(255)
+  orderNumber      String    @unique @map("order_number") @db.VarChar(50)
+  status           String    @default("pending") @db.VarChar(50)
+  totalAmount      Decimal?  @map("total_amount") @db.Decimal(15, 2)
+  orderDate        DateTime? @map("order_date") @db.Date
+  expectedDelivery DateTime? @map("expected_delivery") @db.Date
+  actualDelivery   DateTime? @map("actual_delivery") @db.Date
+  
+  supplierId       String    @map("supplier_id") @db.VarChar(255)
+  companyId        String    @map("company_id") @db.VarChar(255)
+  createdById      String    @map("created_by") @db.VarChar(255)
+
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime  @map("updated_at") @db.DateTime(0)
+
+  supplier  Supplier            @relation(fields: [supplierId], references: [id])
+  company   Company             @relation(fields: [companyId], references: [id])
+  createdBy User                @relation("CreatedBy", fields: [createdById], references: [id])
+  items     PurchaseOrderItem[]
+
+  @@map("purchase_orders")
+}
+
+// 9. Purchase Order Items
+model PurchaseOrderItem {
+  id              String   @id @default(uuid()) @db.VarChar(255)
+  quantity        Decimal  @db.Decimal(10, 2)
+  unitPrice       Decimal  @map("unit_price") @db.Decimal(10, 2)
+  totalPrice      Decimal  @map("total_price") @db.Decimal(12, 2)
+  notes           String?  @db.Text
+  
+  purchaseOrderId String   @map("purchase_order_id") @db.VarChar(255)
+  materialId      String   @map("material_id") @db.VarChar(255)
+  
+  updatedAt       DateTime @map("updated_at") @db.DateTime(0)
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  material      Material      @relation(fields: [materialId], references: [id])
+
+  @@map("purchase_order_items")
+}
+
+// 10. Invitations
+model Invitation {
+  id          String    @id @default(uuid()) @db.VarChar(255)
+  email       String    @db.VarChar(255)
+  role        String    @db.VarChar(50)
+  token       String    @unique @db.VarChar(255)
+  expiresAt   DateTime  @map("expires_at") @db.DateTime(0)
+  acceptedAt  DateTime? @map("accepted_at") @db.DateTime(0)
+  
+  companyId   String    @map("company_id") @db.VarChar(255)
+  invitedById String    @map("invited_by") @db.VarChar(255)
+
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime  @map("updated_at") @db.DateTime(0)
+
+  company   Company @relation(fields: [companyId], references: [id])
+  invitedBy User    @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@map("invitations")
+}
+
+model PlatformSubscription {
+  id                 String   @id @default(uuid()) @db.VarChar(255)
+  companyId          String   @unique @map("company_id") @db.VarChar(255)
+  planCode           String   @default("starter") @map("plan_code") @db.VarChar(50)
+  status             String   @default("trialing") @db.VarChar(50) // trialing | active | past_due | canceled
+  trialEndsAt        DateTime? @map("trial_ends_at") @db.DateTime(0)
+  currentPeriodStart DateTime? @map("current_period_start") @db.DateTime(0)
+  currentPeriodEnd   DateTime? @map("current_period_end") @db.DateTime(0)
+  monthlyAmount      Decimal? @map("monthly_amount") @db.Decimal(12, 2)
+  currency           String   @default("MAD") @db.VarChar(10)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt          DateTime @map("updated_at") @db.DateTime(0)
+
+  company            Company  @relation(fields: [companyId], references: [id])
+  payments           PlatformPayment[]
+
+  @@index([status])
+  @@index([trialEndsAt])
+  @@map("platform_subscriptions")
+}
+
+model PlatformPayment {
+  id             String   @id @default(uuid()) @db.VarChar(255)
+  subscriptionId String   @map("subscription_id") @db.VarChar(255)
+  companyId      String   @map("company_id") @db.VarChar(255)
+  amount         Decimal  @db.Decimal(12, 2)
+  status         String   @db.VarChar(50) // paid | failed | pending
+  dueAt          DateTime? @map("due_at") @db.DateTime(0)
+  paidAt         DateTime? @map("paid_at") @db.DateTime(0)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime @map("updated_at") @db.DateTime(0)
+
+  subscription   PlatformSubscription @relation(fields: [subscriptionId], references: [id])
+  company        Company              @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, createdAt])
+  @@index([status, createdAt])
+  @@index([subscriptionId])
+  @@map("platform_payments")
+}
+
+model PlatformCompanyStatusEvent {
+  id          String   @id @default(uuid()) @db.VarChar(255)
+  companyId   String   @map("company_id") @db.VarChar(255)
+  action      String   @db.VarChar(50) // suspended | activated
+  reason      String?  @db.VarChar(255)
+  actorUserId String   @map("actor_user_id") @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  company     Company  @relation(fields: [companyId], references: [id])
+  actor       User     @relation(fields: [actorUserId], references: [id])
+
+  @@index([companyId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("platform_company_status_events")
+}
+
+model WebAuthnCredential {
+  id                   String   @id @default(uuid()) @db.VarChar(255)
+  userId               String   @map("user_id") @db.VarChar(255)
+  credentialId         String   @unique @map("credential_id") @db.VarChar(512)
+  publicKey            String   @map("public_key") @db.LongText
+  counter              Int      @default(0)
+  authenticatorAttachment String? @map("authenticator_attachment") @db.VarChar(30) // platform | cross-platform
+  transports           String?  @db.VarChar(255)
+  deviceType           String?  @map("device_type") @db.VarChar(50)
+  backedUp             Boolean? @map("backed_up")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt            DateTime @map("updated_at") @db.DateTime(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("webauthn_credentials")
+}
+
+model ToolCalculation {
+  id         String   @id @default(uuid()) @db.VarChar(255)
+  companyId  String   @map("company_id") @db.VarChar(255)
+  userId     String   @map("user_id") @db.VarChar(255)
+  projectId  String?  @map("project_id") @db.VarChar(255)
+  toolType   String   @map("tool_type") @db.VarChar(30) // concrete | steel | formwork
+  inputJson  Json     @map("input_json")
+  outputJson Json     @map("output_json")
+  notes      String?  @db.VarChar(500)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime @map("updated_at") @db.DateTime(0)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, toolType, createdAt])
+  @@index([userId, createdAt])
+  @@index([projectId, createdAt])
+  @@map("tool_calculations")
+}
+
+model WebAuthnChallenge {
+  id         String   @id @default(uuid()) @db.VarChar(255)
+  userId     String   @map("user_id") @db.VarChar(255)
+  purpose    String   @db.VarChar(30) // registration | authentication
+  challenge  String   @db.VarChar(255)
+  expiresAt  DateTime @map("expires_at") @db.DateTime(0)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime @map("updated_at") @db.DateTime(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, expiresAt])
+  @@map("webauthn_challenges")
+}
+
+model WebAuthnLoginChallenge {
+  id         String   @id @default(uuid()) @db.VarChar(255)
+  challenge  String   @db.VarChar(255)
+  expiresAt  DateTime @map("expires_at") @db.DateTime(0)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime @map("updated_at") @db.DateTime(0)
+
+  @@index([expiresAt, createdAt])
+  @@map("webauthn_login_challenges")
+}
+
+model WebAuthnLoginAttempt {
+  id          String   @id @default(uuid()) @db.VarChar(255)
+  ipAddress   String   @map("ip_address") @db.VarChar(64)
+  credentialId String? @map("credential_id") @db.VarChar(512)
+  success     Boolean  @default(false)
+  reason      String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @map("updated_at") @db.DateTime(0)
+
+  @@index([ipAddress, createdAt])
+  @@index([success, createdAt])
+  @@map("webauthn_login_attempts")
+}

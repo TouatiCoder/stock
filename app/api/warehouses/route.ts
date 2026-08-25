@@ -17,6 +17,7 @@ export async function GET() {
         id: true,
         name: true,
         location: true,
+        capacity: true,
         isMain: true,
       },
     });
@@ -42,30 +43,33 @@ export async function POST(req: Request) {
     if (access.error) return access.error;
 
     const body = await req.json();
-    const { name, location, capacity, companyId } = body;
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    const location = typeof body?.location === "string" ? body.location.trim() : null;
+    const capacity = body?.capacity === null || body?.capacity === undefined || body?.capacity === ""
+      ? null
+      : Number(body.capacity);
 
-    if (!name || !companyId) {
-      return NextResponse.json({ error: "Name and Company ID are required" }, { status: 400 });
+    if (!name) {
+      return NextResponse.json({ error: "Warehouse name is required" }, { status: 400 });
     }
-    
-    // Ensure user belongs to the company
-    if (user.companyId !== companyId) {
-        return NextResponse.json({ error: "Unauthorized for this company" }, { status: 403 });
+
+    if (capacity !== null && (!Number.isFinite(capacity) || capacity < 0)) {
+      return NextResponse.json({ error: "Capacity must be a non-negative number" }, { status: 400 });
     }
 
     const warehouse = await db.warehouse.create({
       data: {
         name,
         location,
-        capacity: capacity ? Number(capacity) : null,
-        companyId,
+        capacity,
+        companyId: user.companyId,
         isMain: false,
         isActive: true,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
 
-    return NextResponse.json(warehouse);
+    return NextResponse.json(warehouse, { status: 201 });
   } catch (error) {
     console.error("Error creating warehouse:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

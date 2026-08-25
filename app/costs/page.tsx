@@ -36,13 +36,11 @@ export default async function CostsPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{pageTitle}</h1>
         <p className="text-sm md:text-base text-gray-600 mt-1">{await t("costs", "pageDescription") || "Gestion des commandes et des dépenses"}</p>
       </div>
       
-      {/* Stats Cards */}
       <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -75,14 +73,12 @@ export default async function CostsPage() {
         </Card>
       </div>
 
-      {/* Orders - Full Width */}
       <div>
         <OrdersList searchTerm="" />
       </div>
 
-      {/* Suppliers */}
       <div>
-        <SuppliersList searchTerm="" limit={3} />
+        <SuppliersList searchTerm="" limit={5} />
       </div>
     </div>
   )

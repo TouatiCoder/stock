@@ -1,7 +1,7 @@
 import { checkAuth } from "@/lib/auth/auth-utils";
 import { getTranslations } from "@/lib/server-i18n";
 import { redirect } from "next/navigation";
-import SteelCalculatorClient from "./page.client";
+import SteelToolsClient from "./steel-tools.client";
 
 export default async function SteelCalculatorPage() {
   const user = await checkAuth();
@@ -26,5 +26,5 @@ export default async function SteelCalculatorPage() {
     );
   }
 
-  return <SteelCalculatorClient />;
+  return <SteelToolsClient />;
 }

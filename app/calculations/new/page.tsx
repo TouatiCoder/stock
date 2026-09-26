@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Calculator, BookOpen, Building2, Ruler, Weight } from "lucide-react";
+import { Calculator, BookOpen, Building2, Ruler, Weight, Grid3x3 } from "lucide-react";
 import { checkAuth } from "@/lib/auth/auth-utils";
 import { getTranslations } from "@/lib/server-i18n";
 
@@ -44,6 +44,12 @@ export default async function NewCalculationPage() {
       title: tCommon.formworkCalculator || "Formwork Calculator",
       description: tCommon.calculationHubFormworkDescription || "Estimate formwork area and sheet requirements.",
       icon: Ruler,
+    },
+    {
+      href: "/tools/mesh-calculator",
+      title: tCommon.meshCalculator || "Welded Mesh Calculator",
+      description: tCommon.calculationHubMeshDescription || "Work out panel count and total weight for welded mesh reinforcement.",
+      icon: Grid3x3,
     },
     {
       href: "/materials/library",

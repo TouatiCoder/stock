@@ -126,27 +126,27 @@ export default function SuppliersPage() {
       setExporting(true)
       toast.info(t("supplierExportInProgress"))
 
-      const exportRows = filteredSuppliers.map((supplier) => ({
-        name: supplier.name,
-        contactPerson: supplier.contactPerson || "",
-        email: supplier.email || "",
-        phone: supplier.phone || "",
-        address: supplier.address || "",
-        status: supplier.isActive ? t("active") : t("inactive"),
-        createdAt: supplier.createdAt ? new Date(supplier.createdAt).toLocaleDateString("fr-FR") : "",
-      }))
+    const exportRows = filteredSuppliers.map((supplier) => ({
+      name: supplier.name,
+      email: supplier.email || "",
+      phone: supplier.phone || "",
+      address: supplier.address || "",
+      status: supplier.isActive ? t("active") : t("inactive"),
+      createdAt: supplier.createdAt
+        ? new Date(supplier.createdAt).toLocaleDateString("fr-FR")
+        : "",
+    }))
 
-      const csv = convertToCSV(exportRows, {
-        headers: {
-          name: t("supplierTitle"),
-          contactPerson: t("contact"),
-          email: t("supplierEmail"),
-          phone: t("supplierPhone"),
-          address: t("supplierAddress"),
-          status: t("status"),
-          createdAt: t("since"),
-        },
-      })
+    const csv = convertToCSV(exportRows, {
+      headers: {
+        name: t("supplierTitle"),
+        email: t("supplierEmail"),
+        phone: t("supplierPhone"),
+        address: t("supplierAddress"),
+        status: t("status"),
+        createdAt: t("since"),
+      },
+    })
 
       downloadCSV(csv, generateFilename("suppliers"))
       toast.success(t("supplierExportSuccess"))

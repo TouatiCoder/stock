@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCommonTranslations, useLocale } from "@/components/LocaleProvider";
 import { useAuth } from "@/lib/mysql/auth-context";
-
-type ProjectOption = { id: string; name: string; status: string };
+import {
+  buildToolProjectsUrl,
+  formatProjectOptionLabel,
+  mapToolProjectOptions,
+  type ToolProjectOption,
+} from "@/lib/calculators/project-link";
 
 type ChecklistListItem = {
   id: string;
@@ -42,7 +46,8 @@ export default function ChecklistsClient() {
     text(`checklistsType_${type}`, type.charAt(0).toUpperCase() + type.slice(1));
 
   const [checklists, setChecklists] = useState<ChecklistListItem[]>([]);
-  const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [projects, setProjects] = useState<ToolProjectOption[]>([]);
+  const [areProjectsLoaded, setAreProjectsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -85,11 +90,20 @@ export default function ChecklistsClient() {
     }
   };
 
+  /**
+   * The project list offered by the checklist form: every project of the
+   * authenticated user's company (the default scope only returns the projects
+   * the user is personally assigned to, which left the dropdown empty).
+   */
   const loadProjects = async () => {
-    const res = await fetch("/api/tools/projects", { credentials: "include", cache: "no-store" });
-    if (!res.ok) return;
-    const body = await res.json().catch(() => ({}));
-    setProjects(body.items || []);
+    try {
+      const res = await fetch(buildToolProjectsUrl("company"), { credentials: "include", cache: "no-store" });
+      if (!res.ok) return;
+      const body = await res.json().catch(() => ({}));
+      setProjects(mapToolProjectOptions(body));
+    } finally {
+      setAreProjectsLoaded(true);
+    }
   };
 
   useEffect(() => {
@@ -247,14 +261,27 @@ export default function ChecklistsClient() {
                 </option>
               ))}
             </select>
-            <select className="w-full rounded border p-2" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-              <option value="">{text("checklistsProjectPlaceholder", "Link to project (optional)")}</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name} ({project.status})
-                </option>
-              ))}
-            </select>
+            <div>
+              <select
+                className="w-full rounded border p-2"
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+                aria-label={text("checklistsProjectPlaceholder", "Link to project (optional)")}
+              >
+                {/* Empty value = no project: linking a checklist to a project stays optional. */}
+                <option value="">{text("checklistsProjectPlaceholder", "Link to project (optional)")}</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {formatProjectOptionLabel(project)}
+                  </option>
+                ))}
+              </select>
+              {areProjectsLoaded && projects.length === 0 ? (
+                <p className="mt-1 text-xs text-gray-500">
+                  {text("checklistsNoProjectsAvailable", "No project available")}
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <div className="space-y-2">

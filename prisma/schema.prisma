@@ -646,7 +646,7 @@ model ToolCalculation {
   companyId  String   @map("company_id") @db.VarChar(255)
   userId     String   @map("user_id") @db.VarChar(255)
   projectId  String?  @map("project_id") @db.VarChar(255)
-  toolType   String   @map("tool_type") @db.VarChar(30) // concrete | steel | formwork
+  toolType   String   @map("tool_type") @db.VarChar(30) // concrete | steel | formwork | mesh
   inputJson  Json     @map("input_json")
   outputJson Json     @map("output_json")
   notes      String?  @db.VarChar(500)

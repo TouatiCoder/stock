@@ -2,13 +2,20 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireRoles } from "@/lib/backlog/security";
+import { buildLinkedProjectWhere } from "@/lib/calculators/project-link";
 
-const TOOL_TYPES = new Set(["concrete", "steel", "formwork"]);
+const TOOL_TYPES = new Set(["concrete", "steel", "formwork", "mesh"]);
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Resolves the optional project a calculation is linked to. Scoped to the
+ * authenticated user's company - the same scope the calculators' project
+ * dropdown offers - so any project the user can pick can also be saved
+ * against, and a project of another company never resolves.
+ */
 async function resolveAuthorizedProjectId(params: {
   projectId?: string | null;
   role: string;
@@ -17,17 +24,8 @@ async function resolveAuthorizedProjectId(params: {
 }) {
   if (!params.projectId) return null;
 
-  const roleScopedWhere =
-    params.role === "structural_engineer"
-      ? { structuralEngineerId: params.userId }
-      : { siteManagerId: params.userId };
-
   const project = await db.project.findFirst({
-    where: {
-      id: params.projectId,
-      companyId: params.companyId,
-      ...roleScopedWhere,
-    },
+    where: buildLinkedProjectWhere({ projectId: params.projectId, companyId: params.companyId }),
     select: { id: true },
   });
 

@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireRoles } from "@/lib/backlog/security";
+import { buildLinkedProjectWhere } from "@/lib/calculators/project-link";
 
 const CHECKLIST_TYPES = new Set(["safety", "daily", "quality", "equipment", "general"]);
 const STATUSES = new Set(["in_progress", "completed"]);
 
+/**
+ * Resolves the optional project a checklist is linked to. Scoped to the
+ * authenticated user's company - the same scope the project dropdown offers -
+ * so any project the user can pick can also be saved, and a project of another
+ * company never resolves. No project selected stays valid: the link is optional.
+ */
 async function resolveAuthorizedProjectId(params: {
   projectId?: string | null;
   role: string;
@@ -13,17 +20,8 @@ async function resolveAuthorizedProjectId(params: {
 }) {
   if (!params.projectId) return null;
 
-  const roleScopedWhere =
-    params.role === "structural_engineer"
-      ? { structuralEngineerId: params.userId }
-      : { siteManagerId: params.userId };
-
   const project = await db.project.findFirst({
-    where: {
-      id: params.projectId,
-      companyId: params.companyId,
-      ...roleScopedWhere,
-    },
+    where: buildLinkedProjectWhere({ projectId: params.projectId, companyId: params.companyId }),
     select: { id: true },
   });
 

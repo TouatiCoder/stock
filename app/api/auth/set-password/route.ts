@@ -12,7 +12,10 @@ export async function POST(req: Request) {
     }
 
     const user = await db.user.findFirst({
-      where: { resetToken: token },
+      where: {
+        resetToken: token,
+        resetTokenExpiry: { gt: new Date() },
+      },
     });
 
     if (!user) {

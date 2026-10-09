@@ -2,12 +2,10 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/utils/edge-jwt";
 import { db } from "@/lib/db";
-import { Resend } from "resend";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { enforceMaxUsers, featureDeniedResponse } from "@/lib/subscription";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const ALLOWED_INVITE_ROLES = new Set(["site_manager", "structural_engineer"]);
 
 export async function POST(req: Request) {
@@ -129,8 +127,13 @@ export async function POST(req: Request) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const acceptUrl = `${appUrl}/invite/accept?token=${inviteToken}`;
 
-    try {
-      await resend.emails.send({
+    let emailSent = false;
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (resendApiKey) {
+      try {
+        const { Resend } = await import("resend");
+        const resend = new Resend(resendApiKey);
+        await resend.emails.send({
         from: process.env.RESEND_FROM_INVITATIONS || "onboarding@hamishona.com",
         to: cleanEmail,
         subject: "Invitation a rejoindre BuildStock Pro",
@@ -143,15 +146,21 @@ export async function POST(req: Request) {
             <p>Ce lien expirera le ${expiresAt.toLocaleString("fr-FR")}.</p>
           </div>
         `,
-      });
-    } catch (emailError) {
-      console.error("Invite email send failed:", emailError);
+        });
+        emailSent = true;
+      } catch (emailError) {
+        console.error("Invite email send failed:", emailError);
+      }
+    } else {
+      console.warn("RESEND_API_KEY is missing; invitation email was not sent.");
     }
 
     return NextResponse.json({
       success: true,
       token: inviteToken,
       resent: Boolean(existingUser || existingInvite),
+      emailSent,
+      ...(emailSent ? {} : { message: "Invitation created, but email delivery is disabled or failed." }),
     });
   } catch (error) {
     console.error("Send invitation error:", error);

@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
-import { Resend } from "resend";
 import { subscriptionService } from "@/lib/subscription/subscription.service";
 import { featureGateService, FEATURE_CODES } from "@/lib/subscription";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+/**
+ * TEMPORARILY DISABLED: Resend welcome emails while deployment is being verified.
+ * To re-enable later, restore the Resend client and email-send block and configure
+ * RESEND_API_KEY plus RESEND_FROM_ADMIN in Vercel Environment Variables.
+ */
 
 export async function POST(req: Request) {
   try {
@@ -42,15 +45,15 @@ export async function POST(req: Request) {
     // Check password complexity
     const hasUppercase = /[A-Z]/.test(password)
     const hasNumber = /[0-9]/.test(password)
-    
+
     if (!hasUppercase || !hasNumber) {
       return NextResponse.json({ error: "Password must contain at least one uppercase letter and one number" }, { status: 400 })
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
-    
+
     let isFirstPlatformUser = false
-    
+
     // Trial configuration from environment
     const trialEnabled =
       String(process.env.BILLING_TRIAL_ENABLED || "").toLowerCase() === "true" ||
@@ -97,18 +100,12 @@ export async function POST(req: Request) {
       await featureGateService.incrementUsage(company.id, FEATURE_CODES.MAX_USERS, 1, null, tx);
     });
 
-    try {
-      await resend.emails.send({
-        from: process.env.RESEND_FROM_ADMIN || "onboarding@hamishona.com",
-        to: email,
-        subject: "Welcome to BuildStock Pro",
-        html: `<h1>Welcome ${firstName || "there"}!</h1><p>Your company account has been created successfully.</p><p>You can now log in and start using BuildStock Pro.</p>`,
-      })
-    } catch (emailError) {
-      console.error("Email sending failed but registration succeeded:", emailError)
-    }
-
-    return NextResponse.json({ success: true, isPlatformAdmin: isFirstPlatformUser });
+    // Welcome email intentionally skipped while Resend is temporarily disabled.
+    return NextResponse.json({
+      success: true,
+      isPlatformAdmin: isFirstPlatformUser,
+      emailSent: false,
+    });
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

@@ -2,13 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/utils/edge-jwt";
 import { cookies } from "next/headers";
-import { Resend } from "resend";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { enforceMaxUsers, featureDeniedResponse } from "@/lib/subscription";
 import { subscriptionService } from "@/lib/subscription/subscription.service";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const ALLOWED_INVITE_ROLES = new Set(["site_manager", "structural_engineer"]);
 
 export async function POST(req: Request) {
@@ -137,32 +135,30 @@ export async function POST(req: Request) {
       }
     });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const acceptUrl = `${appUrl}/invite/accept?token=${inviteToken}`;
-
-    try {
-      await resend.emails.send({
-        from: process.env.RESEND_FROM_INVITATIONS || "onboarding@hamishona.com",
-        to: cleanEmail,
-        subject: "Invitation à rejoindre BuildStock Pro",
-        html: `
-          <div style="font-family: sans-serif; padding: 20px;">
-            <h2>Bonjour ${cleanFirstName},</h2>
-            <p>Vous avez été invité par ${currentUser.firstName} à rejoindre l'équipe.</p>
-            <p>Veuillez cliquer sur le lien ci-dessous pour définir votre mot de passe et activer votre compte:</p>
-            <p><a href="${acceptUrl}" style="color: #2563eb;">Activer mon compte</a></p>
-            <p>Ce lien expirera le ${expiresAt.toLocaleString("fr-FR")}.</p>
-          </div>
-        `,
-      });
-    } catch (emailError) {
-      console.error("Invite email send failed:", emailError);
-    }
+    /*
+     * TEMPORARILY DISABLED: Resend invitation email while Vercel deployment is being verified.
+     * To re-enable later, restore the Resend import/client and this email-send block,
+     * then configure RESEND_API_KEY and RESEND_FROM_INVITATIONS in Vercel.
+     *
+     * const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+     * const acceptUrl = `${appUrl}/invite/accept?token=${inviteToken}`;
+     * await resend.emails.send({
+     *   from: process.env.RESEND_FROM_INVITATIONS || "onboarding@hamishona.com",
+     *   to: cleanEmail,
+     *   subject: "Invitation à rejoindre BuildStock Pro",
+     *   html: `<p>Bonjour ${cleanFirstName},</p>
+     *     <p>Vous avez été invité par ${currentUser.firstName} à rejoindre l'équipe.</p>
+     *     <p><a href="${acceptUrl}">Activer mon compte</a></p>
+     *     <p>Ce lien expirera le ${expiresAt.toLocaleString("fr-FR")}.</p>`,
+     * });
+     */
 
     return NextResponse.json({
       success: true,
       token: inviteToken,
       resent: Boolean(existingUser || existingInvite),
+      emailSent: false,
+      message: "Invitation créée, mais l'envoi par email est temporairement désactivé.",
     });
   } catch (error) {
     console.error("Invite Error:", error);

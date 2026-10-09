@@ -1941,6 +1941,67 @@
         "enableDescription": "This will require payment-valid subscriptions for company access. Super Admin access will remain allowed.",
         "disableDescription": "This will disable payment-based access enforcement and allow all authenticated companies to access."
       }
+    },
+    "companyDetail": {
+      "back": "Back to companies",
+      "notFound": "Company not found.",
+      "loading": "Loading company...",
+      "loadError": "Failed to load the company",
+      "identity": "Details",
+      "email": "Email",
+      "phone": "Phone",
+      "city": "City",
+      "country": "Country",
+      "ice": "ICE",
+      "createdAt": "Created on",
+      "suspendedAt": "Suspended on",
+      "suspendedReason": "Suspension reason",
+      "counts": "Usage",
+      "usersCount": "Users",
+      "projectsCount": "Projects",
+      "warehousesCount": "Warehouses",
+      "subscription": "Subscription",
+      "noSubscription": "No subscription",
+      "plan": "Plan",
+      "monthlyAmount": "Monthly amount",
+      "trialEndsAt": "Trial ends",
+      "currentPeriod": "Current period",
+      "users": "Users",
+      "usersEmpty": "No users.",
+      "userName": "Name",
+      "userEmail": "Email",
+      "userRole": "Role",
+      "userLastLogin": "Last login",
+      "userActive": "Active",
+      "userInactive": "Inactive",
+      "neverLoggedIn": "Never",
+      "payments": "Recent payments",
+      "paymentsEmpty": "No payments.",
+      "paymentAmount": "Amount",
+      "paymentStatus": "Status",
+      "paymentDate": "Date",
+      "actions": "Actions"
+    },
+    "export": {
+      "button": "Export CSV",
+      "headers": {
+        "name": "Company",
+        "id": "ID",
+        "status": "Status",
+        "subscription": "Subscription",
+        "trial": "Trial ends",
+        "payment": "Last payment",
+        "created": "Created at"
+      }
+    },
+    "growth": {
+      "title": "12-month growth",
+      "newCompanies": "New companies",
+      "totalCompanies": "Total companies",
+      "collectedRevenue": "Collected revenue",
+      "loading": "Loading chart...",
+      "loadError": "Failed to load growth data",
+      "empty": "No data yet."
     }
   },
   "pricing": {

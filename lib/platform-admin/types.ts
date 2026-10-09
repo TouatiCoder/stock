@@ -115,3 +115,72 @@ export interface PlatformStripeListQuery {
   search?: string;
   status?: string;
 }
+
+export interface PlatformCompanyUserDto {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+  last_login_at: string | null;
+  created_at: string;
+}
+
+export interface PlatformCompanyPaymentDto {
+  id: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  due_at: string | null;
+  paid_at: string | null;
+  created_at: string;
+}
+
+export interface PlatformCompanySubscriptionDto {
+  plan_code: string;
+  status: SubscriptionStatus;
+  monthly_amount: number;
+  currency: string;
+  trial_ends_at: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+}
+
+export interface PlatformCompanyDetailDto {
+  id: string;
+  name: string;
+  status: "active" | "suspended";
+  email: string | null;
+  phone: string | null;
+  city: string | null;
+  country: string | null;
+  ice: string | null;
+  plan: string | null;
+  suspended_at: string | null;
+  suspended_reason: string | null;
+  created_at: string;
+  counts: {
+    users: number;
+    projects: number;
+    warehouses: number;
+  };
+  subscription: PlatformCompanySubscriptionDto | null;
+  users: PlatformCompanyUserDto[];
+  payments: PlatformCompanyPaymentDto[];
+}
+
+/** One month of the platform growth series. */
+export interface PlatformGrowthPointDto {
+  /** "2026-09" */
+  month: string;
+  new_companies: number;
+  /** Companies existing at the end of that month. */
+  total_companies: number;
+  /** Sum of the payments actually collected during that month. */
+  collected_revenue: number;
+}
+
+export interface PlatformGrowthSeriesDto {
+  currency: string;
+  points: PlatformGrowthPointDto[];
+}

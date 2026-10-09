@@ -3,10 +3,15 @@ import { db } from "@/lib/db";
 import { Resend } from "resend";
 import crypto from "crypto";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(req: Request) {
   try {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.error("Forgot Password Error: RESEND_API_KEY is missing");
+      return NextResponse.json({ error: "Email service is not configured" }, { status: 503 });
+    }
+
+    const resend = new Resend(apiKey);
     const body = await req.json();
     const email = body?.email?.trim()?.toLowerCase();
 
@@ -31,17 +36,10 @@ export async function POST(req: Request) {
       },
     });
 
-    if (!process.env.RESEND_API_KEY) {
-      console.error("Forgot Password Error: RESEND_API_KEY is missing");
-      return NextResponse.json({ error: "Email service is not configured" }, { status: 500 });
-    }
-
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@hamishona.com";
-    console.log("DEBUG Resend key prefix:", process.env.RESEND_API_KEY?.slice(0, 10));
-    console.log("DEBUG from email:", fromEmail);
     const { error: emailError } = await resend.emails.send({
       from: fromEmail,
       to: email,

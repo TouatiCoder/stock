@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/utils/edge-jwt";
 import { cookies } from "next/headers";
-import { Resend } from "resend";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { enforceMaxUsers, featureDeniedResponse } from "@/lib/subscription";
 import { subscriptionService } from "@/lib/subscription/subscription.service";
+import { getAppUrl, getResendClient, getResendSender } from "@/lib/email/resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const ALLOWED_INVITE_ROLES = new Set(["site_manager", "structural_engineer"]);
 
 export async function POST(req: Request) {
@@ -34,12 +33,10 @@ export async function POST(req: Request) {
     if (!cleanEmail || !cleanFirstName || !cleanLastName) {
       return NextResponse.json({ error: "Email, nom et prenom sont obligatoires" }, { status: 400 });
     }
-
     if (!ALLOWED_INVITE_ROLES.has(cleanRole)) {
       return NextResponse.json({ error: "Role not allowed" }, { status: 400 });
     }
 
-    // Auto-initialize subscription if missing (e.g. after DB reset)
     const existingSub = await db.subscription.findFirst({ where: { companyId: currentUser.companyId } });
     if (!existingSub) {
       const trialEnabled = String(process.env.BILLING_TRIAL_ENABLED || "").toLowerCase() === "true" || process.env.BILLING_TRIAL_ENABLED === "1";
@@ -52,32 +49,21 @@ export async function POST(req: Request) {
 
     const maxUsers = await enforceMaxUsers(currentUser.companyId, 1);
     if (!maxUsers.gate.allowed) {
-      return featureDeniedResponse(
-        maxUsers.gate,
-        "Active user limit reached for your current subscription plan",
-      );
+      return featureDeniedResponse(maxUsers.gate, "Active user limit reached for your current subscription plan");
     }
 
     const now = new Date();
     const existingUser = await db.user.findUnique({ where: { email: cleanEmail } });
-
     if (existingUser?.active) {
       return NextResponse.json({ error: "User already exists" }, { status: 400 });
     }
-
     if (existingUser && existingUser.companyId !== currentUser.companyId) {
       return NextResponse.json({ error: "Email already belongs to another company" }, { status: 400 });
     }
 
     const existingInvite = await db.invitation.findFirst({
-      where: {
-        email: cleanEmail,
-        companyId: currentUser.companyId,
-        acceptedAt: null,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+      where: { email: cleanEmail, companyId: currentUser.companyId, acceptedAt: null },
+      orderBy: { createdAt: "desc" },
     });
 
     const inviteToken = crypto.randomBytes(32).toString("hex");
@@ -87,16 +73,10 @@ export async function POST(req: Request) {
       if (existingUser) {
         await tx.user.update({
           where: { id: existingUser.id },
-          data: {
-            firstName: cleanFirstName,
-            lastName: cleanLastName,
-            role: cleanRole,
-            updatedAt: now,
-          },
+          data: { firstName: cleanFirstName, lastName: cleanLastName, role: cleanRole, updatedAt: now },
         });
       } else {
         const tempPassword = await bcrypt.hash(crypto.randomBytes(12).toString("hex"), 10);
-
         await tx.user.create({
           data: {
             email: cleanEmail,
@@ -137,35 +117,47 @@ export async function POST(req: Request) {
       }
     });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const acceptUrl = `${appUrl}/invite/accept?token=${inviteToken}`;
-
+    const acceptUrl = `${getAppUrl()}/invite/accept?token=${encodeURIComponent(inviteToken)}`;
     try {
-      await resend.emails.send({
-        from: process.env.RESEND_FROM_INVITATIONS || "onboarding@hamishona.com",
+      const resend = getResendClient();
+      const { error } = await resend.emails.send({
+        from: getResendSender("invitations"),
         to: cleanEmail,
         subject: "Invitation à rejoindre BuildStock Pro",
         html: `
-          <div style="font-family: sans-serif; padding: 20px;">
-            <h2>Bonjour ${cleanFirstName},</h2>
-            <p>Vous avez été invité par ${currentUser.firstName} à rejoindre l'équipe.</p>
-            <p>Veuillez cliquer sur le lien ci-dessous pour définir votre mot de passe et activer votre compte:</p>
-            <p><a href="${acceptUrl}" style="color: #2563eb;">Activer mon compte</a></p>
-            <p>Ce lien expirera le ${expiresAt.toLocaleString("fr-FR")}.</p>
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;color:#172033">
+            <h2>Bonjour ${escapeHtml(cleanFirstName)},</h2>
+            <p>Vous avez été invité par ${escapeHtml(currentUser.firstName || "un administrateur")} à rejoindre l'équipe BuildStock Pro.</p>
+            <p><a href="${acceptUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 20px;text-decoration:none;border-radius:6px">Accepter l'invitation</a></p>
+            <p>Ce lien expire le ${expiresAt.toLocaleString("fr-FR")}.</p>
           </div>
         `,
       });
+      if (error) {
+        console.error("Resend invitation email failed:", error);
+        return NextResponse.json({ error: "Invitation saved but email could not be sent. Check Resend domain verification and sender configuration." }, { status: 502 });
+      }
     } catch (emailError) {
-      console.error("Invite email send failed:", emailError);
+      console.error("Invitation email configuration/send failed:", emailError);
+      return NextResponse.json({ error: "Invitation saved but email service is not configured correctly." }, { status: 502 });
     }
 
-    return NextResponse.json({
-      success: true,
-      token: inviteToken,
-      resent: Boolean(existingUser || existingInvite),
-    });
+    return NextResponse.json({ success: true, resent: Boolean(existingUser || existingInvite) });
   } catch (error) {
     console.error("Invite Error:", error);
     return NextResponse.json({ error: "Failed to send invitation" }, { status: 500 });
   }
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[character];
+  });
 }

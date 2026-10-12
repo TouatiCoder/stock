@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { Resend } from "resend";
 import crypto from "crypto";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { getAppUrl, getResendClient, getResendSender } from "@/lib/email/resend";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const email = body?.email?.trim()?.toLowerCase();
+    const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
 
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
@@ -16,8 +14,9 @@ export async function POST(req: Request) {
 
     const user = await db.user.findUnique({ where: { email } });
 
+    // Keep the response generic to avoid revealing whether an account exists.
     if (!user) {
-      return NextResponse.json({ error: "Email not found" }, { status: 404 });
+      return NextResponse.json({ success: true });
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
@@ -25,47 +24,34 @@ export async function POST(req: Request) {
 
     await db.user.update({
       where: { id: user.id },
-      data: {
-        resetToken,
-        resetTokenExpiry,
-      },
+      data: { resetToken, resetTokenExpiry },
     });
 
-    if (!process.env.RESEND_API_KEY) {
-      console.error("Forgot Password Error: RESEND_API_KEY is missing");
-      return NextResponse.json({ error: "Email service is not configured" }, { status: 500 });
-    }
+    const resetLink = `${getAppUrl()}/reset-password?token=${encodeURIComponent(resetToken)}`;
+    const resend = getResendClient();
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
-
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@hamishona.com";
-    console.log("DEBUG Resend key prefix:", process.env.RESEND_API_KEY?.slice(0, 10));
-    console.log("DEBUG from email:", fromEmail);
-    const { error: emailError } = await resend.emails.send({
-      from: fromEmail,
+    const { error } = await resend.emails.send({
+      from: getResendSender("security"),
       to: email,
-      subject: "Password reset request",
+      subject: "Password reset request — BuildStock Pro",
       html: `
-        <div style="font-family: sans-serif; padding: 20px;">
-          <h2>Password reset</h2>
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;color:#172033">
+          <h2>Reset your BuildStock Pro password</h2>
           <p>We received a request to reset your password.</p>
-          <p>Click the link below to choose a new password:</p>
-          <br/>
-          <a href="${resetLink}" style="background-color: #ef4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset password</a>
-          <p style="margin-top: 20px; font-size: 12px; color: #666;">If this was not you, ignore this email.</p>
+          <p><a href="${resetLink}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 20px;text-decoration:none;border-radius:6px">Reset password</a></p>
+          <p>This link expires in one hour. If you did not request this, you can safely ignore this email.</p>
         </div>
       `,
     });
 
-    if (emailError) {
-      console.error("Forgot Password Error: Resend send failed", emailError);
-      return NextResponse.json({ error: "Unable to send reset email" }, { status: 500 });
+    if (error) {
+      console.error("Resend password-reset email failed:", error);
+      return NextResponse.json({ error: "Unable to send reset email" }, { status: 502 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Forgot Password Error:", error);
-    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+    console.error("Forgot password error:", error);
+    return NextResponse.json({ error: "Email service unavailable" }, { status: 500 });
   }
 }

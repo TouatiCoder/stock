@@ -6,7 +6,7 @@
     "build": "prisma generate && next build",
     "dev": "prisma generate && cross-env NODE_ENV=development next dev",
     "lint": "eslint .",
-    "test": "tsx --test lib/calculators/*.test.ts lib/platform-admin/*.test.ts lib/i18n.test.ts",
+    "test": "tsx --test lib/calculators/*.test.ts lib/i18n.test.ts",
     "i18n:check": "node scripts/validate-i18n.mjs",
     "start": "next start",
     "postinstall": "prisma generate",

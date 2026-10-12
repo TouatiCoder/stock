@@ -1,6 +1,0 @@
-.env
-.env.*
-!.env.example
-*.pdf
-.tsc.out.txt
-tsconfig.tsbuildinfo

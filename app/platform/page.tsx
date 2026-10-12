@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useLocale, usePlatformTranslations } from "@/components/LocaleProvider";
 import { EnhancedPlatformMetrics } from "@/components/platform-admin/enhanced-metrics";
 import { CompaniesTable } from "@/components/platform-admin/companies-table";
-import { PlatformGrowthChart } from "@/components/platform-admin/growth-chart";
 import {
   activatePlatformCompany,
   getPlatformCompanies,
@@ -111,8 +110,6 @@ export default function PlatformDashboardPage() {
           locale={locale}
         />
       )}
-
-      <PlatformGrowthChart />
 
       <CompaniesTable
         items={companiesData?.items || []}

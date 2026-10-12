@@ -1,33 +1,23 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { verifyToken } from "@/lib/utils/edge-jwt";
 import { db } from "@/lib/db";
-import { requirePlatformAdmin } from "@/lib/platform-admin/middleware";
 import { subscriptionService } from "@/lib/subscription/subscription.service";
 
-/**
- * POST /api/admin/fix-subscription
- *
- * Recovery tool: creates the missing subscription row for a company that ended
- * up without one. Platform admins only - it used to accept any signed-in user,
- * which let anyone grant their own company a trial.
- *
- * Body: { companyId?: string } - defaults to the caller's own company.
- */
-export async function POST(req: Request) {
+export async function POST() {
   try {
-    const auth = await requirePlatformAdmin();
-    if (auth.error || !auth.user) return auth.error;
+    const cookieStore = await cookies();
+    const tokenCookie = cookieStore.get("auth-token")?.value;
+    if (!tokenCookie) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json().catch(() => ({}));
-    const requestedCompanyId = typeof body?.companyId === "string" ? body.companyId.trim() : "";
-    const companyId = requestedCompanyId || auth.user.companyId;
+    const payload = await verifyToken(tokenCookie);
+    if (!payload?.userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const company = await db.company.findUnique({ where: { id: companyId }, select: { id: true } });
-    if (!company) {
-      return NextResponse.json({ error: "Company not found" }, { status: 404 });
-    }
+    const user = await db.user.findUnique({ where: { id: payload.userId } });
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     const existing = await db.subscription.findFirst({
-      where: { companyId },
+      where: { companyId: user.companyId },
     });
 
     if (existing) {
@@ -39,12 +29,12 @@ export async function POST(req: Request) {
       process.env.BILLING_TRIAL_ENABLED === "1";
     const trialDays = Number(process.env.BILLING_TRIAL_DAYS || "7");
 
-    await subscriptionService.initializeCompanySubscription(companyId, {
+    await subscriptionService.initializeCompanySubscription(user.companyId, {
       trialEnabled,
       trialDays: Number.isFinite(trialDays) && trialDays > 0 ? trialDays : 7,
     });
 
-    return NextResponse.json({ success: true, message: "Subscription initialized", companyId });
+    return NextResponse.json({ success: true, message: "Subscription initialized" });
   } catch (error) {
     console.error("Fix subscription error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

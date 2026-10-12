@@ -1,9 +1,7 @@
 ﻿"use client";
 
-import Link from "next/link";
 import { useMemo } from "react";
 import { useLocale, usePlatformTranslations } from "@/components/LocaleProvider";
-import { buildCompaniesExportUrl } from "@/lib/platform-admin/client";
 import type { CompanyStatusFilter, PlatformCompanyListItemDto } from "@/lib/platform-admin/types";
 
 type Props = {
@@ -91,24 +89,6 @@ export function CompaniesTable(props: Props) {
             <option value="suspended">{translateValue("status", "suspended")}</option>
             <option value="trialing">{translateValue("status", "trialing")}</option>
           </select>
-          {/* Exports every company matching the current filters, not just this page. */}
-          <a
-            href={buildCompaniesExportUrl(
-              { search, status },
-              {
-                name: t("export.headers.name"),
-                id: t("export.headers.id"),
-                status: t("export.headers.status"),
-                subscription: t("export.headers.subscription"),
-                trial: t("export.headers.trial"),
-                payment: t("export.headers.payment"),
-                created: t("export.headers.created"),
-              },
-            )}
-            className="rounded-md border border-gray-300 px-3 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            {t("export.button")}
-          </a>
         </div>
       </div>
 
@@ -142,12 +122,7 @@ export function CompaniesTable(props: Props) {
                 return (
                   <tr key={company.id} className="border-t border-gray-100">
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/platform/companies/${company.id}`}
-                        className="font-medium text-blue-700 hover:underline"
-                      >
-                        {company.name}
-                      </Link>
+                      <p className="font-medium text-gray-900">{company.name}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusBadgeClass[company.status] || "bg-gray-100 text-gray-700"}`}>

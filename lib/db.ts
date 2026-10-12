@@ -10,6 +10,12 @@ const prismaClientSingleton = () => {
   // ✅ Middleware لإصلاح مشكلة التواريخ في MySQL القديم
   // هذا الكود يملأ حقل updatedAt تلقائياً قبل أي عملية حفظ
   client.$use(async (params, next) => {
+    // StockMovement has no updatedAt field in prisma/schema.prisma.
+    // Do not inject unknown data into stock movement create/update calls.
+    if (params.model === 'StockMovement') {
+      return next(params);
+    }
+
     const now = new Date();
     
     // عند الإنشاء (Create)

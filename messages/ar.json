@@ -1941,67 +1941,6 @@
         "enableDescription": "سيؤدي هذا إلى اشتراط اشتراك صالح لوصول الشركات. وسيبقى وصول المشرف العام مسموحاً.",
         "disableDescription": "سيؤدي هذا إلى تعطيل التحكم في الوصول المعتمد على الدفع، والسماح لجميع الشركات الموثقة بالوصول إلى المنصة."
       }
-    },
-    "companyDetail": {
-      "back": "الرجوع إلى الشركات",
-      "notFound": "الشركة غير موجودة.",
-      "loading": "جارٍ تحميل الشركة...",
-      "loadError": "تعذر تحميل الشركة",
-      "identity": "المعلومات",
-      "email": "البريد الإلكتروني",
-      "phone": "الهاتف",
-      "city": "المدينة",
-      "country": "البلد",
-      "ice": "ICE",
-      "createdAt": "تاريخ الإنشاء",
-      "suspendedAt": "تاريخ التعليق",
-      "suspendedReason": "سبب التعليق",
-      "counts": "الاستخدام",
-      "usersCount": "المستخدمون",
-      "projectsCount": "المشاريع",
-      "warehousesCount": "المستودعات",
-      "subscription": "الاشتراك",
-      "noSubscription": "لا يوجد اشتراك",
-      "plan": "الخطة",
-      "monthlyAmount": "المبلغ الشهري",
-      "trialEndsAt": "نهاية التجربة",
-      "currentPeriod": "الفترة الحالية",
-      "users": "المستخدمون",
-      "usersEmpty": "لا يوجد مستخدمون.",
-      "userName": "الاسم",
-      "userEmail": "البريد الإلكتروني",
-      "userRole": "الدور",
-      "userLastLogin": "آخر دخول",
-      "userActive": "نشط",
-      "userInactive": "غير نشط",
-      "neverLoggedIn": "أبدًا",
-      "payments": "آخر المدفوعات",
-      "paymentsEmpty": "لا توجد مدفوعات.",
-      "paymentAmount": "المبلغ",
-      "paymentStatus": "الحالة",
-      "paymentDate": "التاريخ",
-      "actions": "الإجراءات"
-    },
-    "export": {
-      "button": "تصدير CSV",
-      "headers": {
-        "name": "الشركة",
-        "id": "المعرّف",
-        "status": "الحالة",
-        "subscription": "الاشتراك",
-        "trial": "نهاية التجربة",
-        "payment": "آخر دفعة",
-        "created": "تاريخ الإنشاء"
-      }
-    },
-    "growth": {
-      "title": "النمو خلال 12 شهرًا",
-      "newCompanies": "شركات جديدة",
-      "totalCompanies": "إجمالي الشركات",
-      "collectedRevenue": "المحصّل",
-      "loading": "جارٍ تحميل الرسم البياني...",
-      "loadError": "تعذر تحميل بيانات النمو",
-      "empty": "لا توجد بيانات بعد."
     }
   },
   "pricing": {

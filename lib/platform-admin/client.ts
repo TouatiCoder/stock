@@ -8,8 +8,6 @@ import type {
   PlatformCompaniesQuery,
   PlatformDashboardDto,
   PlatformSubscriptionsOverviewDto,
-  PlatformCompanyDetailDto,
-  PlatformGrowthSeriesDto,
 } from "@/lib/platform-admin/types";
 import type { PaymentProviderDto, ProviderCode, ProviderMode } from "@/lib/payment-providers/types";
 
@@ -34,35 +32,6 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function getPlatformDashboard(): Promise<PlatformDashboardDto> {
   return apiFetch<PlatformDashboardDto>("/dashboard");
-}
-
-export async function getPlatformCompanyDetail(companyId: string): Promise<PlatformCompanyDetailDto> {
-  return apiFetch<PlatformCompanyDetailDto>(`/companies/${encodeURIComponent(companyId)}`);
-}
-
-export async function getPlatformGrowth(months = 12): Promise<PlatformGrowthSeriesDto> {
-  return apiFetch<PlatformGrowthSeriesDto>(`/growth?months=${months}`);
-}
-
-/**
- * URL of the CSV export for the filters currently applied to the table. The
- * column headers travel with the request so the file matches the UI language.
- */
-export function buildCompaniesExportUrl(
-  query: PlatformCompaniesQuery,
-  headers: Record<"name" | "id" | "status" | "subscription" | "trial" | "payment" | "created", string>,
-): string {
-  const params = new URLSearchParams();
-  if (query.search) params.set("search", query.search);
-  if (query.status) params.set("status", query.status);
-  params.set("h_name", headers.name);
-  params.set("h_id", headers.id);
-  params.set("h_status", headers.status);
-  params.set("h_subscription", headers.subscription);
-  params.set("h_trial", headers.trial);
-  params.set("h_payment", headers.payment);
-  params.set("h_created", headers.created);
-  return `${BASE}/companies/export?${params.toString()}`;
 }
 
 export async function getPlatformCompanies(query: PlatformCompaniesQuery): Promise<PlatformCompaniesListDto> {

@@ -8,10 +8,16 @@ const senderEnv: Record<ResendSender, string> = {
   admin: "RESEND_FROM_ADMIN",
 };
 
-const senderFallback: Record<ResendSender, string> = {
-  security: "BuildStock Pro <noreply@touatiayoub.com>",
-  invitations: "BuildStock Pro <invitations@touatiayoub.com>",
-  admin: "BuildStock Pro <admin@touatiayoub.com>",
+const senderLabels: Record<ResendSender, string> = {
+  security: "BuildStock Pro",
+  invitations: "BuildStock Pro Invitations",
+  admin: "BuildStock Pro Admin",
+};
+
+const senderLocalPartFallback: Record<ResendSender, string> = {
+  security: "noreply",
+  invitations: "invitations",
+  admin: "admin",
 };
 
 export function getResendClient(): Resend {
@@ -23,7 +29,20 @@ export function getResendClient(): Resend {
 }
 
 export function getResendSender(kind: ResendSender = "security"): string {
-  return process.env[senderEnv[kind]]?.trim() || senderFallback[kind];
+  const domain = process.env.RESEND_DOMAIN?.trim().replace(/^@+|@+$/g, "");
+  if (!domain) {
+    throw new Error("Email service is not configured: RESEND_DOMAIN is missing");
+  }
+
+  const configuredLocalPart = process.env[senderEnv[kind]]?.trim();
+  const localPart = configuredLocalPart || senderLocalPartFallback[kind];
+
+  // Allow a full email address too, in case an existing deployment still uses one.
+  if (localPart.includes("@")) {
+    return localPart.includes("<") ? localPart : `${senderLabels[kind]} <${localPart}>`;
+  }
+
+  return `${senderLabels[kind]} <${localPart}@${domain}>`;
 }
 
 export function getAppUrl(): string {

@@ -11,8 +11,6 @@ permissions:
 
 jobs:
   deploy:
-    # Add VPS secrets first, then set repository variable VPS_DEPLOY_ENABLED=true.
-    # This prevents the first workflow commit from trying to deploy before setup.
     if: ${{ vars.VPS_DEPLOY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -30,18 +28,27 @@ jobs:
             set -eu
             cd /var/www/stock
 
-            if [ -n "$(git status --porcelain)" ]; then
-              echo "Deployment stopped: /var/www/stock has local changes. Commit/stash them before deploying."
+            echo "Checking tracked working-tree changes..."
+            if ! git diff --quiet || ! git diff --cached --quiet; then
+              echo "Deployment stopped: tracked local changes exist in /var/www/stock."
+              git status --short
               exit 1
             fi
 
             git fetch origin main
             git merge --ff-only origin/main
 
+            echo "Installing dependencies..."
             npm ci
+
+            echo "Building production app..."
             npm run build
 
+            echo "Reloading only the stock PM2 process..."
             pm2 reload stock --update-env
             pm2 save
 
-            echo "Deployment completed. Verify http://2.24.139.220:3001/"
+            echo "Checking local HTTP response..."
+            curl --fail --silent --show-error --output /dev/null http://127.0.0.1:3001/
+
+            echo "Deployment completed successfully."

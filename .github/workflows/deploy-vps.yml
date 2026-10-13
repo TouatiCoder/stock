@@ -28,6 +28,31 @@ jobs:
             set -eu
             cd /var/www/stock
 
+            # SSH actions use a non-interactive shell, so load Node installed via nvm.
+            export NVM_DIR="$HOME/.nvm"
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              . "$NVM_DIR/nvm.sh"
+            fi
+
+            # Support Node installed outside nvm as well.
+            if ! command -v npm >/dev/null 2>&1; then
+              for node_bin in "$HOME"/.nvm/versions/node/*/bin /usr/local/bin /usr/bin; do
+                if [ -x "$node_bin/npm" ]; then
+                  PATH="$node_bin:$PATH"
+                  export PATH
+                  break
+                fi
+              done
+            fi
+
+            if ! command -v npm >/dev/null 2>&1; then
+              echo "Deployment stopped: npm is not available in the SSH environment."
+              echo "Checked nvm and standard Node.js binary locations."
+              exit 1
+            fi
+
+            echo "Using Node: $(node --version)"
+            echo "Using npm: $(npm --version)"
             echo "Checking tracked working-tree changes..."
             if ! git diff --quiet || ! git diff --cached --quiet; then
               echo "Deployment stopped: tracked local changes exist in /var/www/stock."

@@ -14,25 +14,46 @@ export function InventoryStats() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchStats()
-  }, [user?.companyId])
+    if (!user?.companyId) return
 
-  const fetchStats = async () => {
-    try {
-      setLoading(true)
-      const companyId = user?.companyId
-      if (!companyId) return
+    let active = true
+    let requestInFlight = false
 
-      const res = await fetch("/api/inventory/stats", { credentials: "include" })
-      if (!res.ok) throw new Error("Failed to fetch stats")
-      const data = await res.json()
-      setStats(data)
-    } catch (error) {
-      console.error("Error fetching inventory stats:", error)
-    } finally {
-      setLoading(false)
+    const refreshStats = async () => {
+      if (requestInFlight || document.visibilityState !== "visible") return
+      requestInFlight = true
+
+      try {
+        const res = await fetch("/api/inventory/stats", {
+          credentials: "include",
+          cache: "no-store",
+        })
+        if (!res.ok) throw new Error("Failed to fetch stats")
+        const data = await res.json()
+        if (active) setStats(data)
+      } catch (error) {
+        console.error("Error fetching inventory stats:", error)
+      } finally {
+        requestInFlight = false
+        if (active) setLoading(false)
+      }
     }
-  }
+
+    void refreshStats()
+    const intervalId = window.setInterval(() => void refreshStats(), 5000)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void refreshStats()
+    }
+    window.addEventListener("focus", onVisibilityChange)
+    document.addEventListener("visibilitychange", onVisibilityChange)
+
+    return () => {
+      active = false
+      window.clearInterval(intervalId)
+      window.removeEventListener("focus", onVisibilityChange)
+      document.removeEventListener("visibilitychange", onVisibilityChange)
+    }
+  }, [user?.companyId])
 
   const formatCurrency = (value: number) => {
     const localeMap: Record<string, string> = { fr: "fr-MA", en: "en-US", ar: "ar-MA" }

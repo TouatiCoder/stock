@@ -50,7 +50,7 @@ export function InventoryList({ searchTerm }: InventoryListProps) {
     }
 
     void refreshMaterials()
-    const intervalId = window.setInterval(() => void refreshMaterials(), 5000)
+    const intervalId = window.setInterval(() => void refreshMaterials(), 1000)
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") void refreshMaterials()
     }

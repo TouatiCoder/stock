@@ -45,7 +45,7 @@ export async function GET() {
       totalBudget,
       totalCost,
       budgetUsage: totalBudget > 0 ? Math.round((totalCost / totalBudget) * 100) : 0,
-    });
+    }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
   } catch (error) {
     console.error("Project analytics error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

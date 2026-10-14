@@ -66,7 +66,7 @@ export async function GET(req: Request) {
     categories: categories
       .map((row) => row.category)
       .filter((value): value is string => Boolean(value)),
-  });
+  }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
 }
 
 export async function POST(req: Request) {

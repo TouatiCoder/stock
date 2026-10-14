@@ -88,10 +88,16 @@ export function SignupForm() {
         toast.error(apiError)
         setIsLoading(false)
       } else {
-        toast.success(t("successMessage"))
+        if (result.emailSent === true) {
+          toast.success(t("successMessage"))
+        } else {
+          const emailWarning = "Compte créé, mais l’email de bienvenue n’a pas pu être envoyé. Vérifiez la configuration email et le dossier spam."
+          setError(emailWarning)
+          toast.error(emailWarning)
+        }
         setTimeout(() => {
           router.push("/login")
-        }, 1500)
+        }, 2500)
       }
     } catch {
       const connectionError = t("connectionError")

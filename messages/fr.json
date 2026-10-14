@@ -762,6 +762,7 @@
   "destinationWarehouse": "Dépôt destination",
   "sourceWarehouse": "Dépôt source",
   "selectSourceWarehouse": "Sélectionner le dépôt source",
+  "noSourceWarehouseAvailable": "Aucun dépôt disponible pour ce transfert",
   "selectDestinationWarehouse": "Sélectionner le dépôt destination",
   "notesOptional": "Notes (optionnel)",
   "entryNotesPlaceholder": "Référence de réception, détail fournisseur, commentaire...",

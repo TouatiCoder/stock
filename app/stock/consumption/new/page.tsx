@@ -393,16 +393,11 @@ export default function StockTransferPage() {
 
   const sourceWarehouseOptions =
     useMemo(() => {
-      if (!selectedMaterial) {
-        return []
-      }
-
-      // Keep every active company warehouse selectable, even when this
-      // material currently has no stock there. The quantity field and
-      // submit validation still prevent transferring more than available.
+      // Warehouse selection must not depend on a material being selected.
+      // Stock quantities are resolved once a material is chosen.
       return warehouses
         .map((warehouse): WarehouseStock => {
-          const stock = selectedMaterial.warehouseStocks.find(
+          const stock = selectedMaterial?.warehouseStocks.find(
             (row) => row.warehouseId === warehouse.id
           )
 
@@ -727,20 +722,20 @@ export default function StockTransferPage() {
   const handleMaterialChange = (
     materialId: string
   ) => {
+    // Preserve valid warehouse choices if the user selected them first.
+    // Material-specific quantity is reset because stock changes by material.
     setFormData((prev) => ({
-      material_id:
-        materialId,
-
-      source_warehouse_id:
-        "",
-
-      destination_warehouse_id:
-        "",
-
+      ...prev,
+      material_id: materialId,
       quantity: "",
-
-      notes:
-        prev.notes,
+      source_warehouse_id: warehouses.some(
+        (warehouse) => warehouse.id === prev.source_warehouse_id
+      ) ? prev.source_warehouse_id : "",
+      destination_warehouse_id: warehouses.some(
+        (warehouse) =>
+          warehouse.id === prev.destination_warehouse_id &&
+          warehouse.id !== prev.source_warehouse_id
+      ) ? prev.destination_warehouse_id : "",
     }))
 
     setErrors({})
@@ -1311,9 +1306,8 @@ export default function StockTransferPage() {
                   }
                   disabled={
                     loading ||
-                    !selectedMaterial ||
-                    sourceWarehouseOptions.length ===
-                      0
+                    loadingData ||
+                    sourceWarehouseOptions.length === 0
                   }
                 >
 
@@ -1339,14 +1333,9 @@ export default function StockTransferPage() {
                     {sourceWarehouseOptions.length ===
                     0 ? (
                       <div className="px-3 py-2 text-sm text-gray-500">
-                        {selectedMaterial
-                          ? tInventory(
-                              "noSourceWarehouseAvailable"
-                            ) ||
-                            "Aucun stock disponible"
-                          : tInventory(
-                              "selectMaterialPlaceholder"
-                            )}
+                        {tInventory(
+                        "noSourceWarehouseAvailable"
+                      ) || "Aucun dépôt disponible"}
                       </div>
                     ) : (
                       sourceWarehouseOptions.map(

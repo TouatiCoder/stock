@@ -19,11 +19,16 @@ export async function createNotification(input: {
   title: string;
   bodyText?: string | null;
 }) {
+  // The production schema requires a recipient; do not attempt a broadcast row with user_id = NULL.
+  if (!input.userId) return;
+
   try {
     await db.$executeRaw(
       Prisma.sql`
-        INSERT INTO notifications (id, company_id, user_id, type_code, title, body_text, is_read, created_at)
-        VALUES (${randomUUID()}, ${input.companyId}, ${input.userId ?? null}, ${input.typeCode}, ${input.title}, ${input.bodyText ?? null}, 0, UTC_TIMESTAMP())
+        INSERT INTO notifications
+          (id, company_id, user_id, type, title, message, is_read, created_at, updated_at)
+        VALUES
+          (${randomUUID()}, ${input.companyId}, ${input.userId}, ${input.typeCode}, ${input.title}, ${input.bodyText ?? ""}, 0, UTC_TIMESTAMP(), UTC_TIMESTAMP())
       `,
     );
   } catch (error) {
@@ -45,10 +50,7 @@ export async function listCompanyAdminUserIds(companyId: string): Promise<string
 
 export async function notifyAdmins(companyId: string, typeCode: string, title: string, bodyText?: string) {
   const adminIds = await listCompanyAdminUserIds(companyId);
-  if (adminIds.length === 0) {
-    await createNotification({ companyId, typeCode, title, bodyText });
-    return;
-  }
+  if (adminIds.length === 0) return;
 
   await Promise.all(
     adminIds.map((userId) =>

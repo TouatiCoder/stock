@@ -1,0 +1,91 @@
+name: Deploy BuildStock to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ vars.VPS_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Deploy main to VPS over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || '22' }}
+          command_timeout: 18m
+          script: |
+            set -eu
+            cd /var/www/stock
+
+            export NVM_DIR="$HOME/.nvm"
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              . "$NVM_DIR/nvm.sh"
+            fi
+
+            if ! command -v npm >/dev/null 2>&1; then
+              for node_bin in "$HOME"/.nvm/versions/node/*/bin /usr/local/bin /usr/bin; do
+                if [ -x "$node_bin/npm" ]; then
+                  PATH="$node_bin:$PATH"
+                  export PATH
+                  break
+                fi
+              done
+            fi
+
+            if ! command -v npm >/dev/null 2>&1; then
+              echo "Deployment stopped: npm is not available in the SSH environment."
+              exit 1
+            fi
+
+            echo "Using Node: $(node --version)"
+            echo "Using npm: $(npm --version)"
+            echo "Checking tracked working-tree changes..."
+            if ! git diff --quiet || ! git diff --cached --quiet; then
+              echo "Deployment stopped: tracked local changes exist in /var/www/stock."
+              git status --short
+              exit 1
+            fi
+
+            git fetch origin main
+            git merge --ff-only origin/main
+
+            echo "Installing dependencies..."
+            npm ci
+
+            echo "Building production app..."
+            npm run build
+
+            echo "Reloading only the stock PM2 process..."
+            pm2 reload stock --update-env
+            pm2 save
+
+            echo "Waiting for the app to become ready..."
+            ready=0
+            for attempt in $(seq 1 15); do
+              if curl --fail --silent --show-error --output /dev/null http://127.0.0.1:3001/; then
+                ready=1
+                break
+              fi
+              echo "App not ready yet (attempt $attempt/15); waiting 2 seconds..."
+              sleep 2
+            done
+
+            if [ "$ready" -ne 1 ]; then
+              echo "Health check failed after 30 seconds."
+              pm2 status stock || true
+              pm2 logs stock --err --lines 60 --nostream || true
+              exit 1
+            fi
+
+            echo "Deployment completed successfully."

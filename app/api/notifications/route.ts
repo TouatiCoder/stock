@@ -22,13 +22,13 @@ export async function GET(req: Request) {
 
   try {
     const rows = await db.$queryRaw<
-      Array<{ id: string; type_code: string; title: string; body_text: string | null; is_read: number; created_at: Date }>
+      Array<{ id: string; type_code: string; title: string; body_text: string; is_read: number; created_at: Date }>
     >(
       Prisma.sql`
-        SELECT id, type_code, title, body_text, is_read, created_at
+        SELECT id, type AS type_code, title, message AS body_text, is_read, created_at
         FROM notifications
         WHERE company_id = ${auth.user.companyId}
-          AND (user_id IS NULL OR user_id = ${auth.user.id})
+          AND user_id = ${auth.user.id}
           ${unreadOnly ? Prisma.sql`AND is_read = 0` : Prisma.empty}
         ORDER BY created_at DESC
         LIMIT 100

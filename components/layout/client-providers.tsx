@@ -13,6 +13,9 @@ function GlobalLiveRefresh() {
       if (document.visibilityState !== 'visible' || refreshing) return
       refreshing = true
       router.refresh()
+      // Next router.refresh() only updates Server Components. Also notify client-side
+      // React Query/SWR listeners so mounted tables and widgets reload their DB data.
+      window.dispatchEvent(new Event('buildstock:refresh'))
       // Prevent overlapping refresh requests; release before the next one-second tick.
       window.setTimeout(() => { refreshing = false }, 900)
     }

@@ -1,0 +1,105 @@
+name: Read-only DB Health Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-production-db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Inspect production database over SSH (read-only)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || '22' }}
+          command_timeout: 5m
+          script: |
+            set -eu
+            cd /var/www/stock
+
+            export NVM_DIR="$HOME/.nvm"
+            if [ -s "$NVM_DIR/nvm.sh" ]; then . "$NVM_DIR/nvm.sh"; fi
+
+            echo "=== Prisma migration status (read-only) ==="
+            npx prisma migrate status --schema prisma/schema.prisma || echo "WARN: prisma migrate status returned a non-zero exit code"
+
+            echo "=== Live database schema inspection (SELECT only) ==="
+            node <<'NODE'
+            const fs = require('fs');
+            const path = require('path');
+            const dotenv = require('dotenv');
+            // Load production env first without printing any credentials.
+            for (const name of ['.env.production', '.env']) {
+              const file = path.join(process.cwd(), name);
+              if (fs.existsSync(file)) dotenv.config({ path: file });
+            }
+
+            const { PrismaClient } = require('@prisma/client');
+            const prisma = new PrismaClient({ log: [] });
+            const expected = [
+              'companies', 'users', 'projects', 'materials', 'warehouses', 'inventory',
+              'stock_movements', 'stock_reservations', 'stock_count_sessions', 'stock_count_items',
+              'purchase_requests', 'purchase_request_items', 'purchase_request_approvals',
+              'goods_receipts', 'goods_receipt_items', 'supplier_invoices',
+              'inspection_templates', 'inspection_template_items', 'inspections', 'inspection_results',
+              'qa_anomalies'
+            ];
+
+            (async () => {
+              const [info] = await prisma.$queryRaw`SELECT DATABASE() AS db_name, VERSION() AS server_version`;
+              console.log('Database connection: OK');
+              console.log('Database name:', info.db_name);
+              console.log('Server version:', info.server_version);
+
+              const rows = await prisma.$queryRaw`
+                SELECT TABLE_NAME AS table_name
+                FROM information_schema.tables
+                WHERE TABLE_SCHEMA = DATABASE()
+                ORDER BY TABLE_NAME
+              `;
+              const actual = new Set(rows.map((r) => r.table_name));
+              const missing = expected.filter((name) => !actual.has(name));
+              console.log('Table count:', rows.length);
+              console.log('Expected tables present:', expected.length - missing.length + '/' + expected.length);
+              console.log('Missing expected tables:', missing.length ? missing.join(', ') : 'none');
+
+              if (actual.has('_prisma_migrations')) {
+                const migrations = await prisma.$queryRaw`
+                  SELECT migration_name, finished_at, rolled_back_at, started_at
+                  FROM _prisma_migrations
+                  ORDER BY started_at DESC
+                  LIMIT 12
+                `;
+                console.log('Latest migration records:');
+                for (const m of migrations) {
+                  console.log(JSON.stringify({
+                    migration: m.migration_name,
+                    finished: Boolean(m.finished_at),
+                    rolledBack: Boolean(m.rolled_back_at),
+                    startedAt: m.started_at
+                  }));
+                }
+                const unfinished = await prisma.$queryRaw`
+                  SELECT COUNT(*) AS count
+                  FROM _prisma_migrations
+                  WHERE finished_at IS NULL AND rolled_back_at IS NULL
+                `;
+                console.log('Unfinished migrations:', String(unfinished[0].count));
+              } else {
+                console.log('WARN: _prisma_migrations table is absent');
+              }
+
+              await prisma.$disconnect();
+              if (missing.length) process.exitCode = 2;
+            })().catch(async (error) => {
+              console.error('Database inspection failed:', error && error.message ? error.message : 'unknown error');
+              try { await prisma.$disconnect(); } catch {}
+              process.exit(1);
+            });
+            NODE

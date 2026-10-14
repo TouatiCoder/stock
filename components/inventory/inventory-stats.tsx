@@ -40,7 +40,7 @@ export function InventoryStats() {
     }
 
     void refreshStats()
-    const intervalId = window.setInterval(() => void refreshStats(), 5000)
+    const intervalId = window.setInterval(() => void refreshStats(), 1000)
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") void refreshStats()
     }

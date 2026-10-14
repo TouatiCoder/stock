@@ -1122,6 +1122,9 @@ export const inventoryService = {
         // CREATE MOVEMENT
         // ======================================================
 
+        // Keep stock entry compatible with production databases that
+        // have not yet received the optional transfer metadata columns.
+        // The inventory quantity and movement record remain transactional.
         return tx.stockMovement.create({
           data: {
             materialId,
@@ -1130,14 +1133,6 @@ export const inventoryService = {
               userId ?? null,
 
             movementType: "in",
-
-            sourceType: "supplier",
-
-            destinationType:
-              "warehouse",
-
-            destinationWarehouseId:
-              warehouseId,
 
             quantity:
               toDecimal(quantity),

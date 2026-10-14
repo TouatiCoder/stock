@@ -25,7 +25,7 @@ export async function GET(req: Request) {
       }
     });
 
-    return NextResponse.json(suppliers);
+    return NextResponse.json(suppliers, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
 
   } catch (error) {
     console.error("Error fetching suppliers:", error);

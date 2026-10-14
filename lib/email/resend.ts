@@ -1,4 +1,7 @@
 import { Resend } from "resend";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { parse } from "dotenv";
 
 type ResendSender = "security" | "invitations" | "admin";
 
@@ -21,7 +24,16 @@ const senderLocalPartFallback: Record<ResendSender, string> = {
 };
 
 export function getResendClient(): Resend {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
+  // Prefer the key explicitly configured for this VPS in the project .env.
+  // PM2 may retain an older exported value even after .env has been updated.
+  let apiKey: string | undefined;
+  try {
+    const envPath = path.resolve(process.cwd(), ".env");
+    apiKey = parse(readFileSync(envPath, "utf8")).RESEND_API_KEY?.trim();
+  } catch {
+    // Fall back to the process environment when .env is unavailable.
+  }
+  apiKey ||= process.env.RESEND_API_KEY?.trim();
   if (!apiKey) {
     throw new Error("Email service is not configured: RESEND_API_KEY is missing");
   }

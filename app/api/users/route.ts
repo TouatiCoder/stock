@@ -58,7 +58,7 @@ export async function GET(req: Request) {
       total,
       limit,
       hasMore: users.length < total,
-    });
+    }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
   } catch (error) {
     console.error("Users API error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

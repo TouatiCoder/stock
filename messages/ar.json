@@ -762,6 +762,7 @@
     "destinationWarehouse": "المستودع الوجهة",
     "sourceWarehouse": "المستودع المصدر",
     "selectSourceWarehouse": "اختر المستودع المصدر",
+    "noSourceWarehouseAvailable": "لا يوجد مستودع متاح لهذا التحويل",
     "selectDestinationWarehouse": "اختر المستودع الوجهة",
     "notesOptional": "ملاحظات (اختياري)",
     "entryNotesPlaceholder": "مرجع الاستلام، ملاحظة المورد، تفاصيل إضافية...",

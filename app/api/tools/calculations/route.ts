@@ -83,7 +83,7 @@ export async function GET(req: Request) {
       project: row.project,
       createdAt: row.createdAt,
     })),
-  });
+  }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
 }
 
 export async function POST(req: Request) {

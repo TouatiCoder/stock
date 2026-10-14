@@ -1111,33 +1111,19 @@ export default function StockTransferPage() {
         ==================================================== */}
 
         <header className="mb-8 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3 sm:gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
-                <ArrowLeftRight className="h-6 w-6 text-blue-600" aria-hidden="true" />
-              </div>
-
-              <div className="min-w-0">
-                <h1 className="text-xl font-bold leading-tight text-gray-900 sm:text-2xl md:text-3xl">
-                  {tInventory("newStockTransferTitle")}
-                </h1>
-                <p className="mt-2 text-sm leading-6 text-gray-600 sm:text-base">
-                  {tInventory("newStockTransferSubtitle")}
-                </p>
-              </div>
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+              <ArrowLeftRight className="h-6 w-6 text-blue-600" aria-hidden="true" />
             </div>
 
-            <Link href="/inventory" className="w-full shrink-0 sm:w-auto">
-              <Button variant="outline" size="sm" type="button" className="w-full sm:w-auto">
-                <ArrowLeft
-                  className={`h-4 w-4 ${
-                    dir === "rtl" ? "ml-2 rotate-180" : "mr-2"
-                  }`}
-                  aria-hidden="true"
-                />
-                {tCommon("back")}
-              </Button>
-            </Link>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold leading-tight text-gray-900 sm:text-2xl md:text-3xl">
+                {tInventory("newStockTransferTitle")}
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-gray-600 sm:text-base">
+                {tInventory("newStockTransferSubtitle")}
+              </p>
+            </div>
           </div>
         </header>
 

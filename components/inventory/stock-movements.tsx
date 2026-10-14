@@ -42,7 +42,7 @@ export function StockMovements() {
     }
 
     void refreshMovements()
-    const intervalId = window.setInterval(() => void refreshMovements(), 5000)
+    const intervalId = window.setInterval(() => void refreshMovements(), 1000)
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") void refreshMovements()
     }

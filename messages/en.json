@@ -762,6 +762,7 @@
     "destinationWarehouse": "Destination warehouse",
     "sourceWarehouse": "Source warehouse",
     "selectSourceWarehouse": "Select source warehouse",
+    "noSourceWarehouseAvailable": "No warehouse available for this transfer",
     "selectDestinationWarehouse": "Select destination warehouse",
     "notesOptional": "Notes (optional)",
     "entryNotesPlaceholder": "Reception reference, supplier note, delivery detail...",

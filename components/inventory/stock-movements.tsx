@@ -16,27 +16,46 @@ export function StockMovements() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user?.companyId) {
-      fetchMovements()
+    if (!user?.companyId) return
+
+    let active = true
+    let requestInFlight = false
+
+    const refreshMovements = async () => {
+      if (requestInFlight || document.visibilityState !== "visible") return
+      requestInFlight = true
+
+      try {
+        const res = await fetch("/api/inventory/movements?limit=5", {
+          credentials: "include",
+          cache: "no-store",
+        })
+        if (!res.ok) throw new Error("Failed to fetch movements")
+        const data = await res.json()
+        if (active) setMovements(Array.isArray(data) ? data : [])
+      } catch (error) {
+        console.error("Error fetching stock movements:", error)
+      } finally {
+        requestInFlight = false
+        if (active) setLoading(false)
+      }
+    }
+
+    void refreshMovements()
+    const intervalId = window.setInterval(() => void refreshMovements(), 5000)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void refreshMovements()
+    }
+    window.addEventListener("focus", onVisibilityChange)
+    document.addEventListener("visibilitychange", onVisibilityChange)
+
+    return () => {
+      active = false
+      window.clearInterval(intervalId)
+      window.removeEventListener("focus", onVisibilityChange)
+      document.removeEventListener("visibilitychange", onVisibilityChange)
     }
   }, [user?.companyId])
-
-  const fetchMovements = async () => {
-    try {
-      setLoading(true)
-      const companyId = user?.companyId
-      if (!companyId) return
-
-      const res = await fetch("/api/inventory/movements?limit=5", { credentials: "include" })
-      if (!res.ok) throw new Error("Failed to fetch movements")
-      const data = await res.json()
-      setMovements(data || [])
-    } catch (error) {
-      console.error("Error fetching stock movements:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const getMovementIcon = (type: string) => {
     switch (type) {

@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { AuthService } from '@/lib/mysql/auth-service'
 
 export async function loginAction(formData: FormData) {
@@ -35,9 +35,14 @@ export async function loginAction(formData: FormData) {
 
     // Store token in cookie
     const cookieStore = await cookies()
+    const requestHeaders = await headers()
+    const forwardedProto = requestHeaders.get('x-forwarded-proto')?.split(',')[0]?.trim()
+    const secureCookie = forwardedProto
+      ? forwardedProto === 'https'
+      : requestHeaders.get('origin')?.startsWith('https://') ?? false
     cookieStore.set('auth-token', result.token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: secureCookie,
       maxAge: 7 * 24 * 60 * 60, // 7 days
       path: '/'
     })

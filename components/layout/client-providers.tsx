@@ -1,6 +1,37 @@
  'use client'
  
  import dynamic from 'next/dynamic'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+
+function GlobalLiveRefresh() {
+  const router = useRouter()
+
+  useEffect(() => {
+    let refreshing = false
+    const refresh = () => {
+      if (document.visibilityState !== 'visible' || refreshing) return
+      refreshing = true
+      router.refresh()
+      // Prevent overlapping refresh requests; release before the next one-second tick.
+      window.setTimeout(() => { refreshing = false }, 900)
+    }
+
+    const intervalId = window.setInterval(refresh, 1000)
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh() }
+    window.addEventListener('focus', onVisible)
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', onVisible)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [router])
+
+  return null
+}
+
  import { LocaleProvider } from '@/components/LocaleProvider'
  import { AuthProvider } from '@/lib/mysql/auth-context'
  import { Toaster } from '@/components/ui/sonner'
@@ -16,6 +47,7 @@
    return (
      <LocaleProvider initialLocale={initialLocale}>
        <AuthProvider>
+         <GlobalLiveRefresh />
          {children}
          <LanguageModal />
          <Toaster />

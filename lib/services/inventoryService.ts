@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client"
+import { randomUUID } from "node:crypto"
 import { db } from "@/lib/db"
 
 // ============================================================
@@ -1125,7 +1126,7 @@ export const inventoryService = {
         // Use an explicit insert for the legacy stock-movement table.
         // Prisma's generated INSERT/RETURNING can reference optional transfer
         // columns that may not exist yet in older production databases.
-        const movementId = crypto.randomUUID()
+        const movementId = randomUUID()
         const movementDate = new Date()
         const description = notes?.trim() || null
 

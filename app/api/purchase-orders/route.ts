@@ -31,7 +31,7 @@ export async function GET(req: Request) {
       take: limit,
     });
 
-    return NextResponse.json(orders);
+    return NextResponse.json(orders, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
   } catch (error) {
     console.error("Error fetching purchase orders:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

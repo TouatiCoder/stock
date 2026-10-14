@@ -446,10 +446,9 @@ export const inventoryService = {
         ? Math.floor(limit)
         : 10
 
-    const rows =
-      await db.$queryRaw<
-        Array<Record<string, unknown>>
-      >`
+    let rows: Array<Record<string, unknown>>;
+    try {
+      rows = await db.$queryRaw<Array<Record<string, unknown>>>`
         SELECT
           sm.id,
           sm.project_id,
@@ -501,6 +500,44 @@ export const inventoryService = {
 
         LIMIT ${safeLimit}
       `
+      ;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const missingTransferColumn = /Unknown column.*(?:source_type|source_warehouse_id|destination_type|destination_warehouse_id)/i.test(message);
+      if (!missingTransferColumn) throw error;
+
+      // Older production databases may not yet have the optional transfer columns.
+      // Keep the movement history usable and return null for transfer-only metadata.
+      rows = await db.$queryRaw<Array<Record<string, unknown>>>`
+        SELECT
+          sm.id,
+          sm.project_id,
+          sm.material_id,
+          sm.user_id,
+          sm.movement_type,
+          NULL AS source_type,
+          NULL AS source_warehouse_id,
+          NULL AS destination_type,
+          NULL AS destination_warehouse_id,
+          sm.quantity,
+          sm.description,
+          sm.movement_date,
+          m.name AS material_name,
+          m.unit AS material_unit,
+          p.name AS project_name,
+          u.first_name AS user_first_name,
+          u.last_name AS user_last_name,
+          NULL AS source_warehouse_name,
+          NULL AS destination_warehouse_name
+        FROM stock_movements sm
+        INNER JOIN materials m ON m.id = sm.material_id
+        LEFT JOIN projects p ON p.id = sm.project_id
+        LEFT JOIN users u ON u.id = sm.user_id
+        WHERE m.company_id = ${companyId}
+        ORDER BY sm.movement_date DESC
+        LIMIT ${safeLimit}
+      `;
+    }
 
     return rows.map((row) => ({
       id: String(row.id),

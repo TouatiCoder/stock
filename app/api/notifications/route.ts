@@ -44,10 +44,11 @@ export async function GET(req: Request) {
         isRead: r.is_read === 1,
         createdAt: r.created_at,
       })),
+      { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
     );
   } catch (error) {
     if (isNotificationsSchemaError(error)) {
-      return NextResponse.json([]);
+      return NextResponse.json([], { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
     }
     throw error;
   }

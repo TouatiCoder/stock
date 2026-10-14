@@ -26,26 +26,44 @@ export function InventoryList({ searchTerm }: InventoryListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchMaterials()
-  }, [])
+    let active = true
+    let requestInFlight = false
 
-  const fetchMaterials = async () => {
-    try {
-      setLoading(true)
+    const refreshMaterials = async () => {
+      if (requestInFlight || document.visibilityState !== "visible") return
+      requestInFlight = true
 
-      const response = await fetch("/api/inventory/materials")
-      if (!response.ok) {
-        throw new Error("Failed to fetch materials")
+      try {
+        const response = await fetch("/api/inventory/materials", {
+          credentials: "include",
+          cache: "no-store",
+        })
+        if (!response.ok) throw new Error("Failed to fetch materials")
+        const data = await response.json()
+        if (active) setMaterials(Array.isArray(data) ? data : [])
+      } catch (error) {
+        console.error("Error fetching materials:", error)
+      } finally {
+        requestInFlight = false
+        if (active) setLoading(false)
       }
-
-      const data = await response.json()
-      setMaterials(Array.isArray(data) ? data : [])
-    } catch (error) {
-      console.error("Error fetching materials:", error)
-    } finally {
-      setLoading(false)
     }
-  }
+
+    void refreshMaterials()
+    const intervalId = window.setInterval(() => void refreshMaterials(), 5000)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void refreshMaterials()
+    }
+    window.addEventListener("focus", onVisibilityChange)
+    document.addEventListener("visibilitychange", onVisibilityChange)
+
+    return () => {
+      active = false
+      window.clearInterval(intervalId)
+      window.removeEventListener("focus", onVisibilityChange)
+      document.removeEventListener("visibilitychange", onVisibilityChange)
+    }
+  }, [])
 
   const getTotalStock = (material: any): number => {
     if (!Array.isArray(material.inventory)) return 0

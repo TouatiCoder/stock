@@ -2,10 +2,12 @@
  
  import dynamic from 'next/dynamic'
 import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 
 function GlobalLiveRefresh() {
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     let refreshing = false
@@ -16,6 +18,7 @@ function GlobalLiveRefresh() {
       // Next router.refresh() only updates Server Components. Also notify client-side
       // React Query/SWR listeners so mounted tables and widgets reload their DB data.
       window.dispatchEvent(new Event('buildstock:refresh'))
+      void queryClient.invalidateQueries({ refetchType: 'active' })
       // Prevent overlapping refresh requests; release before the next one-second tick.
       window.setTimeout(() => { refreshing = false }, 900)
     }
@@ -30,7 +33,7 @@ function GlobalLiveRefresh() {
       window.removeEventListener('focus', onVisible)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [router])
+  }, [router, queryClient])
 
   return null
 }

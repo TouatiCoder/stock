@@ -62,7 +62,10 @@ export async function POST(req: Request) {
 
     response.cookies.set("auth-token", result.token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: (() => {
+        const forwardedProto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+        return forwardedProto ? forwardedProto === "https" : new URL(req.url).protocol === "https:";
+      })(),
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
       sameSite: "lax",

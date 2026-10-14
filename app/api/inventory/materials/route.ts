@@ -21,7 +21,9 @@ export async function GET(req: Request) {
       lowStock,
       criticalStock,
     });
-    return NextResponse.json(materials);
+    return NextResponse.json(materials, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    });
   } catch (error) {
     console.error("Inventory materials error:", error);
     return NextResponse.json({ error: "Failed to fetch materials" }, { status: 500 });

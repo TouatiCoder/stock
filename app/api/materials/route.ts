@@ -38,7 +38,9 @@ export async function GET(req: Request) {
       ...row,
       category: row.category_name ? { name: row.category_name } : null,
       supplier: row.supplier_name ? { name: row.supplier_name } : null,
-    })));
+    })), {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    });
   } catch (error) {
     console.error("Error fetching materials:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

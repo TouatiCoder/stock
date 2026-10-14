@@ -25,7 +25,9 @@ export async function GET() {
       }),
     ])
 
-    return NextResponse.json({ categories, suppliers })
+    return NextResponse.json({ categories, suppliers }, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    })
   } catch (error) {
     console.error("Inventory material filters error:", error)
     return NextResponse.json({ error: "Failed to fetch inventory filters" }, { status: 500 })

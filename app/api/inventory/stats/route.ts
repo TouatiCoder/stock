@@ -8,7 +8,9 @@ export async function GET(req: Request) {
 
   try {
     const stats = await inventoryService.getInventoryStats(auth.user.companyId);
-    return NextResponse.json(stats);
+    return NextResponse.json(stats, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    });
   } catch (error) {
     console.error("Inventory stats error:", error);
     return NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 });

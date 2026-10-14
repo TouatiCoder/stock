@@ -28,7 +28,9 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: "Material not found" }, { status: 404 });
     }
 
-    return NextResponse.json(material);
+    return NextResponse.json(material, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    });
   } catch (error) {
     console.error("Error fetching material:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

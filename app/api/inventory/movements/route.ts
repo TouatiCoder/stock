@@ -11,7 +11,9 @@ export async function GET(req: Request) {
 
   try {
     const movements = await inventoryService.getRecentStockMovements(auth.user.companyId, limit);
-    return NextResponse.json(movements);
+    return NextResponse.json(movements, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    });
   } catch (error) {
     console.error("Inventory movements error:", error);
     return NextResponse.json({ error: "Failed to fetch movements" }, { status: 500 });

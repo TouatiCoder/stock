@@ -397,18 +397,21 @@ export default function StockTransferPage() {
         return []
       }
 
-      return [
-        ...selectedMaterial.warehouseStocks,
-      ]
-        .filter(
-          (
-            row: WarehouseStock
-          ) =>
-            Number.isFinite(
-              row.quantity
-            ) &&
-            row.quantity > 0
-        )
+      // Keep every active company warehouse selectable, even when this
+      // material currently has no stock there. The quantity field and
+      // submit validation still prevent transferring more than available.
+      return warehouses
+        .map((warehouse): WarehouseStock => {
+          const stock = selectedMaterial.warehouseStocks.find(
+            (row) => row.warehouseId === warehouse.id
+          )
+
+          return {
+            warehouseId: warehouse.id,
+            warehouseName: warehouse.name,
+            quantity: stock?.quantity ?? 0,
+          }
+        })
         .sort(
           (
             a: WarehouseStock,
@@ -418,7 +421,7 @@ export default function StockTransferPage() {
               b.warehouseName
             )
         )
-    }, [selectedMaterial])
+    }, [selectedMaterial, warehouses])
 
   // ==========================================================
   // SELECTED SOURCE STOCK
@@ -1378,7 +1381,16 @@ export default function StockTransferPage() {
                   </p>
                 )}
 
-                {selectedSourceStock && (
+                {selectedMaterial &&
+                  sourceWarehouseOptions.length > 0 &&
+                  sourceWarehouseOptions.every((row) => row.quantity <= 0) && (
+                    <p className="text-sm text-amber-700">
+                      {tInventory("noSourceWarehouseAvailable") ||
+                        "Aucun stock disponible pour ce matériau dans les dépôts actifs."}
+                    </p>
+                  )}
+
+                {selectedSourceStock && availableQuantity > 0 && (
                   <div className="flex items-center justify-between rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
 
                     <div className="flex items-center gap-2 text-sm text-blue-700">
@@ -1565,7 +1577,8 @@ export default function StockTransferPage() {
                 placeholder="0.00"
                 disabled={
                   loading ||
-                  !selectedSourceStock
+                  !selectedSourceStock ||
+                  availableQuantity <= 0
                 }
               />
 

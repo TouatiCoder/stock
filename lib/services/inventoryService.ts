@@ -1122,29 +1122,29 @@ export const inventoryService = {
         // CREATE MOVEMENT
         // ======================================================
 
-        // Keep stock entry compatible with production databases that
-        // have not yet received the optional transfer metadata columns.
-        // The inventory quantity and movement record remain transactional.
-        return tx.stockMovement.create({
-          data: {
-            materialId,
+        // Use an explicit insert for the legacy stock-movement table.
+        // Prisma's generated INSERT/RETURNING can reference optional transfer
+        // columns that may not exist yet in older production databases.
+        const movementId = crypto.randomUUID()
+        const movementDate = new Date()
+        const description = notes?.trim() || null
 
-            userId:
-              userId ?? null,
+        await tx.$executeRaw`
+          INSERT INTO stock_movements
+            (id, material_id, user_id, movement_type, quantity, description, movement_date)
+          VALUES
+            (${movementId}, ${materialId}, ${userId ?? null}, 'in', ${toDecimal(quantity)}, ${description}, ${movementDate})
+        `
 
-            movementType: "in",
-
-            quantity:
-              toDecimal(quantity),
-
-            description:
-              notes?.trim() ||
-              null,
-
-            movementDate:
-              new Date(),
-          },
-        })
+        return {
+          id: movementId,
+          materialId,
+          userId: userId ?? null,
+          movementType: "in",
+          quantity: toDecimal(quantity),
+          description,
+          movementDate,
+        }
       }
     )
   },

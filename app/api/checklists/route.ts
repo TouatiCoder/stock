@@ -75,7 +75,7 @@ export async function GET(req: Request) {
       itemsTotal: row.items.length,
       itemsChecked: row.items.filter((item) => item.isChecked).length,
     })),
-  });
+  }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
 }
 
 export async function POST(req: Request) {

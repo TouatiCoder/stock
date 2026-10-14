@@ -22,7 +22,7 @@ export async function GET() {
       `,
     );
 
-    return NextResponse.json({ items: rows });
+    return NextResponse.json({ items: rows }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
   } catch (error) {
     console.error("project-summary report error:", error);
     return NextResponse.json({ error: "Failed to load project summary" }, { status: 500 });

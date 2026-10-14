@@ -80,7 +80,7 @@ export async function GET(req: Request) {
         overBudgetCount,
         budgetUsage,
       },
-    });
+    }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
   } catch (error) {
     console.error("Error fetching projects:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

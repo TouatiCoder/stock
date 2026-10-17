@@ -7,10 +7,18 @@ function canManageSuppliers(user: { role: string }) {
   return hasPermission(user.role as UserRole, "view_costs");
 }
 
-function cleanOptional(value: unknown) {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed || null;
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
+  try {
+    const user = await checkAuth();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { id } = await params;
+    const supplier = await db.supplier.findFirst({ where: { id, companyId: user.companyId, isActive: true } });
+    if (!supplier) return NextResponse.json({ error: "Fournisseur introuvable." }, { status: 404 });
+    return NextResponse.json(supplier, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("Error fetching supplier:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {

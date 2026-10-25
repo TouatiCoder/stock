@@ -7,11 +7,6 @@ function canManageSuppliers(user: { role: string }) {
   return hasPermission(user.role as UserRole, "view_costs");
 }
 
-function cleanOptional(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed || null;
-}
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> | { id: string } }) {
   try {

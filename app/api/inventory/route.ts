@@ -422,6 +422,33 @@ export async function POST(
           ? body.source_warehouse_id.trim()
           : ""
 
+      // Stock not linked to any warehouse ("Sans dépôt") can be moved
+      // into a warehouse with from_unassigned: true (no source warehouse).
+      if (body?.from_unassigned === true) {
+        const destinationId =
+          typeof body?.destination_warehouse_id === "string"
+            ? body.destination_warehouse_id.trim()
+            : ""
+
+        if (!destinationId) {
+          return jsonError("Destination warehouse is required", 400)
+        }
+
+        const movement = await inventoryService.assignUnassignedStock({
+          companyId: user.companyId,
+          userId: user.id,
+          materialId,
+          destinationWarehouseId: destinationId,
+          quantity,
+          notes,
+        })
+
+        return NextResponse.json(
+          { success: true, message: "Stock transfer recorded", id: movement.id },
+          { status: 201 }
+        )
+      }
+
       const destinationWarehouseId =
         typeof body?.destination_warehouse_id ===
         "string"
@@ -521,6 +548,11 @@ export async function POST(
 
           [
             "Insufficient stock in source warehouse",
+            400,
+          ],
+
+          [
+            "Insufficient unassigned stock",
             400,
           ],
 

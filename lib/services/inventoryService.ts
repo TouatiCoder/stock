@@ -1460,4 +1460,102 @@ export const inventoryService = {
       }
     )
   },
+  /**
+   * Moves stock that is not linked to any warehouse ("Sans dépôt",
+   * inventory rows with warehouseId = null) into a warehouse.
+   * Recorded as a transfer movement with sourceType "unassigned".
+   */
+  async assignUnassignedStock(
+    input: MovementActor & {
+      materialId: string
+      destinationWarehouseId: string
+      quantity: number
+      notes?: string
+    }
+  ) {
+    const { companyId, materialId, destinationWarehouseId, quantity, notes, userId } = input
+
+    validatePositiveQuantity(quantity)
+
+    if (!companyId) throw new Error("companyId is required")
+    if (!materialId) throw new Error("materialId is required")
+    if (!destinationWarehouseId) throw new Error("Destination warehouse is required")
+
+    return db.$transaction(async (tx) => {
+      const [material, destinationWarehouse] = await Promise.all([
+        tx.material.findFirst({ where: { id: materialId, companyId }, select: { id: true } }),
+        tx.warehouse.findFirst({ where: { id: destinationWarehouseId, companyId }, select: { id: true } }),
+      ])
+
+      if (!material) throw new Error("Material not found")
+      if (!destinationWarehouse) throw new Error("Warehouse not found")
+
+      const unassignedRows = await tx.inventory.findMany({
+        where: { materialId, companyId, warehouseId: null },
+        orderBy: { createdAt: "asc" },
+      })
+
+      const available = unassignedRows.reduce((sum, row) => sum + toNumber(row.quantity), 0)
+      if (unassignedRows.length === 0 || available < quantity) {
+        throw new Error("Insufficient unassigned stock")
+      }
+
+      // Take the quantity from the unassigned rows, oldest first.
+      let remaining = quantity
+      for (const row of unassignedRows) {
+        if (remaining <= 0) break
+        const rowQuantity = toNumber(row.quantity)
+        if (rowQuantity <= 0) continue
+        const taken = Math.min(rowQuantity, remaining)
+        remaining -= taken
+        await tx.inventory.update({
+          where: { id: row.id },
+          data: { quantity: toDecimal(rowQuantity - taken), updatedAt: new Date() },
+        })
+      }
+
+      const destinationInventory = await tx.inventory.findFirst({
+        where: { materialId, warehouseId: destinationWarehouseId, companyId },
+        orderBy: { createdAt: "asc" },
+      })
+
+      if (destinationInventory) {
+        await tx.inventory.update({
+          where: { id: destinationInventory.id },
+          data: {
+            quantity: toDecimal(toNumber(destinationInventory.quantity) + quantity),
+            updatedAt: new Date(),
+          },
+        })
+      } else {
+        const template = unassignedRows[0]
+        await tx.inventory.create({
+          data: {
+            materialId,
+            warehouseId: destinationWarehouseId,
+            companyId,
+            quantity: toDecimal(quantity),
+            minThreshold: toDecimal(toNumber(template.minThreshold)),
+            maxThreshold: template.maxThreshold != null ? toDecimal(toNumber(template.maxThreshold)) : null,
+            updatedAt: new Date(),
+          },
+        })
+      }
+
+      return tx.stockMovement.create({
+        data: {
+          materialId,
+          userId: userId ?? null,
+          movementType: "transfer",
+          sourceType: "unassigned",
+          sourceWarehouseId: null,
+          destinationType: "warehouse",
+          destinationWarehouseId,
+          quantity: toDecimal(quantity),
+          description: notes?.trim() || null,
+          movementDate: new Date(),
+        },
+      })
+    })
+  },
 }

@@ -80,7 +80,15 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     if (!existing) return NextResponse.json({ error: "Fournisseur introuvable." }, { status: 404 });
 
     // Soft-delete so historic purchase orders keep their supplier relation intact.
-    await db.supplier.update({ where: { id }, data: { isActive: false, updatedAt: new Date() } });
+    // Also unlink its materials: a deleted supplier must no longer appear as
+    // the supplier of any material (purchase orders keep their history).
+    await db.$transaction([
+      db.supplier.update({ where: { id }, data: { isActive: false, updatedAt: new Date() } }),
+      db.material.updateMany({
+        where: { supplierId: id, companyId: user.companyId },
+        data: { supplierId: null, updatedAt: new Date() },
+      }),
+    ]);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting supplier:", error);

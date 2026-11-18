@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { checkAuth } from "@/lib/auth/auth-utils";
+import { notRemovedUser } from "@/lib/users/removed-users";
 
 export async function GET() {
   try {
@@ -9,7 +10,7 @@ export async function GET() {
     if (user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const users = await db.user.findMany({
-      where: { companyId: user.companyId },
+      where: { companyId: user.companyId, ...notRemovedUser },
       select: {
         id: true,
         firstName: true,

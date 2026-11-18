@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { checkAuth } from "@/lib/auth/auth-utils";
+import { notRemovedUser } from "@/lib/users/removed-users";
 
 export async function GET(req: Request) {
   try {
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
     const limitParam = searchParams.get("limit");
     const limit = limitParam ? Math.min(parseInt(limitParam, 10) || 20, 100) : 20;
 
-    const where: any = { companyId };
+    const where: any = { companyId, ...notRemovedUser };
     if (role) where.role = role;
     if (search) {
       where.OR = [

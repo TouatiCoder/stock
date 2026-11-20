@@ -142,12 +142,16 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
         companyId: user.companyId,
         isActive: true,
       },
-      select: { id: true },
+      select: { id: true, name: true },
     });
 
     if (!material) {
       return NextResponse.json({ error: "Material not found" }, { status: 404 });
     }
+
+    // The archived row keeps a distinct name so a new material can reuse the
+    // original one (material names are unique).
+    const archivedName = `${material.name.slice(0, 220)} (archivé ${material.id.slice(0, 6)})`;
 
     // A material used in purchase orders or stock movements is archived instead
     // of erased: it disappears from inventory, transfers and new orders, while
@@ -157,7 +161,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
         db.inventory.deleteMany({ where: { materialId: material.id } }),
         db.material.update({
           where: { id: material.id },
-          data: { isActive: false, updatedAt: new Date() },
+          data: { isActive: false, name: archivedName, updatedAt: new Date() },
         }),
       ]);
 

@@ -27,6 +27,7 @@ export async function GET(req: Request) {
       LEFT JOIN suppliers s ON s.id = m.supplier_id
       LEFT JOIN inventory i ON i.material_id = m.id
       WHERE m.company_id = ${companyId}
+        AND m.is_active = 1
         ${category ? Prisma.sql`AND m.category = ${category}` : Prisma.empty}
         ${searchLike ? Prisma.sql`AND (m.name LIKE ${searchLike} OR m.description LIKE ${searchLike})` : Prisma.empty}
       GROUP BY m.id, m.name, m.description, m.unit, m.unit_price, m.category, s.name

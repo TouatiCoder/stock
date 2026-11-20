@@ -18,6 +18,7 @@ export async function GET(req: Request) {
 
   const whereClause = {
     companyId: auth.user.companyId,
+    isActive: true,
     ...(category && category !== "all" ? { category } : {}),
     ...(search
       ? {

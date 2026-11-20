@@ -401,6 +401,9 @@ model Material {
   
   supplierId  String?  @map("supplier_id") @db.VarChar(255)
   companyId   String   @map("company_id") @db.VarChar(255)
+  // false = archived: deleted from the user's point of view, kept because orders
+  // or stock movements still reference it.
+  isActive    Boolean  @default(true) @map("is_active")
 
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt   DateTime @map("updated_at") @db.DateTime(0)

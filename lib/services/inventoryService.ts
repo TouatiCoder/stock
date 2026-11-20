@@ -127,6 +127,7 @@ export const inventoryService = {
       .findMany({
         where: {
           companyId,
+          isActive: true,
         },
         select: {
           id: true,
@@ -261,6 +262,7 @@ export const inventoryService = {
       await db.material.findMany({
         where: {
           companyId,
+          isActive: true,
 
           ...(filters?.search && {
             OR: [
@@ -412,6 +414,7 @@ export const inventoryService = {
       await db.material.findMany({
         where: {
           companyId,
+          isActive: true,
           category: {
             not: null,
           },
@@ -1013,6 +1016,7 @@ export const inventoryService = {
             where: {
               id: materialId,
               companyId,
+              isActive: true,
             },
 
             select: {
@@ -1219,6 +1223,7 @@ export const inventoryService = {
             where: {
               id: materialId,
               companyId,
+              isActive: true,
             },
 
             select: {
@@ -1483,7 +1488,7 @@ export const inventoryService = {
 
     return db.$transaction(async (tx) => {
       const [material, destinationWarehouse] = await Promise.all([
-        tx.material.findFirst({ where: { id: materialId, companyId }, select: { id: true } }),
+        tx.material.findFirst({ where: { id: materialId, companyId, isActive: true }, select: { id: true } }),
         tx.warehouse.findFirst({ where: { id: destinationWarehouseId, companyId }, select: { id: true } }),
       ])
 

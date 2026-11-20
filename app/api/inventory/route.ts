@@ -127,6 +127,7 @@ export async function PATCH(
           id: materialId,
           companyId:
             user.companyId,
+          isActive: true,
         },
 
         select: {

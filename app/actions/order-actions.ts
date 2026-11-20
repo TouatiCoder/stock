@@ -29,7 +29,7 @@ export async function getInitialOrderData(companyId: string) {
 
     // Fetch all materials with inventory
     const materials = await db.material.findMany({
-      where: { companyId },
+      where: { companyId, isActive: true },
       include: { inventory: true }
     })
 
@@ -56,7 +56,7 @@ export async function getSupplierMaterials(supplierId: string) {
     if (!user) throw new Error("Unauthorized")
 
     const materials = await db.material.findMany({
-      where: { supplierId },
+      where: { supplierId, isActive: true },
       include: { inventory: true }
     })
 

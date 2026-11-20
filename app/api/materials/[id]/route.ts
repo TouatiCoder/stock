@@ -14,6 +14,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       where: {
         id: params.id,
         companyId: user.companyId,
+        isActive: true,
       },
       include: {
         supplier: true,
@@ -62,6 +63,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       where: {
         id: params.id,
         companyId: user.companyId,
+        isActive: true,
       },
     });
 
@@ -138,6 +140,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
       where: {
         id: params.id,
         companyId: user.companyId,
+        isActive: true,
       },
       select: { id: true },
     });
@@ -146,25 +149,48 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: "Material not found" }, { status: 404 });
     }
 
-    await db.$transaction(async (tx) => {
-      await tx.inventory.deleteMany({
-        where: { materialId: params.id },
-      });
+    // A material used in purchase orders or stock movements is archived instead
+    // of erased: it disappears from inventory, transfers and new orders, while
+    // those orders and movements keep pointing to it.
+    const archive = () =>
+      db.$transaction([
+        db.inventory.deleteMany({ where: { materialId: material.id } }),
+        db.material.update({
+          where: { id: material.id },
+          data: { isActive: false, updatedAt: new Date() },
+        }),
+      ]);
 
-      await tx.material.delete({
-        where: { id: params.id },
-      });
-    });
+    const [orderLines, movements] = await Promise.all([
+      db.purchaseOrderItem.count({ where: { materialId: material.id } }),
+      db.stockMovement.count({ where: { materialId: material.id } }),
+    ]);
 
-    return NextResponse.json({ success: true });
-  } catch (error: unknown) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
-      return NextResponse.json(
-        { error: "Cannot delete this material because it is used in other records." },
-        { status: 409 },
-      );
+    if (orderLines > 0 || movements > 0) {
+      await archive();
+      return NextResponse.json({ success: true, archived: true });
     }
 
+    try {
+      await db.$transaction(async (tx) => {
+        await tx.inventory.deleteMany({
+          where: { materialId: material.id },
+        });
+
+        await tx.material.delete({
+          where: { id: material.id },
+        });
+      });
+    } catch (deleteError: unknown) {
+      const stillReferenced =
+        deleteError instanceof Prisma.PrismaClientKnownRequestError && deleteError.code === "P2003";
+      if (!stillReferenced) throw deleteError;
+      await archive();
+      return NextResponse.json({ success: true, archived: true });
+    }
+
+    return NextResponse.json({ success: true, archived: false });
+  } catch (error: unknown) {
     console.error("Error deleting material:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

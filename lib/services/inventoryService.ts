@@ -285,6 +285,10 @@ export const inventoryService = {
                 },
               },
               {
+                barcode:
+                  filters.search,
+              },
+              {
                 supplier: {
                   is: {
                     name: {

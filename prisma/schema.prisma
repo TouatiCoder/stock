@@ -404,6 +404,8 @@ model Material {
   // false = archived: deleted from the user's point of view, kept because orders
   // or stock movements still reference it.
   isActive    Boolean  @default(true) @map("is_active")
+  // QR code or barcode printed on the material, unique per company.
+  barcode     String?  @db.VarChar(100)
 
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt   DateTime @map("updated_at") @db.DateTime(0)
@@ -414,6 +416,7 @@ model Material {
   purchaseOrderItems PurchaseOrderItem[]
   stockMovements     StockMovement[]
 
+  @@unique([companyId, barcode], map: "materials_company_id_barcode_key")
   @@map("materials")
 }
 

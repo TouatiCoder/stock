@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { checkAuth } from "@/lib/auth/auth-utils";
 import { db } from "@/lib/db";
+import { DUPLICATE_BARCODE_MESSAGE, isDuplicateBarcodeError, parseBarcode } from "@/lib/materials/barcode";
 
 export async function GET(req: Request) {
   try {
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const { name, description, unit, unitPrice, category, supplierId, minStockLevel, maxStockLevel } = body;
+    const barcode = parseBarcode(body.barcode) ?? null;
 
     // Tenant scope must always come from the authenticated session, never from request input.
     const companyId = user.companyId;
@@ -86,7 +88,7 @@ export async function POST(req: Request) {
         data: {
           name: name.trim(), description: description ?? null, unit: unit.trim(),
           unitPrice: parsedUnitPrice !== null ? new Prisma.Decimal(String(parsedUnitPrice)) : null,
-          category: category ?? null, supplierId: supplierId ?? null, companyId, updatedAt: new Date(),
+          category: category ?? null, supplierId: supplierId ?? null, companyId, barcode, updatedAt: new Date(),
         },
       });
       await tx.inventory.create({
@@ -103,9 +105,13 @@ export async function POST(req: Request) {
       id: created.id, name: created.name, description: created.description, unit: created.unit,
       unitPrice: created.unitPrice != null ? Number(created.unitPrice) : null,
       category: created.category, supplierId: created.supplierId, companyId: created.companyId,
+      barcode: created.barcode,
     }, { status: 201 });
   } catch (error) {
     console.error("Error creating material:", error);
+    if (isDuplicateBarcodeError(error)) {
+      return NextResponse.json({ error: DUPLICATE_BARCODE_MESSAGE }, { status: 409 });
+    }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json({ error: "A material with this name already exists" }, { status: 409 });
     }

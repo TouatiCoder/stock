@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { checkAuth } from "@/lib/auth/auth-utils";
 import { db } from "@/lib/db";
+import { DUPLICATE_BARCODE_MESSAGE, isDuplicateBarcodeError, parseBarcode } from "@/lib/materials/barcode";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
@@ -57,6 +58,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       minStockLevel,
       maxStockLevel,
     } = body;
+    // Only changed when the client sends it (older clients do not).
+    const barcode = parseBarcode(body.barcode);
 
     // Verify the material belongs to the user's company
     const existingMaterial = await db.material.findFirst({
@@ -81,6 +84,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         unitPrice: unitPrice ? new Prisma.Decimal(String(unitPrice)) : null,
         category,
         supplierId: supplierId || null,
+        ...(barcode !== undefined ? { barcode } : {}),
         updatedAt: new Date(),
       },
       include: {
@@ -117,6 +121,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     return NextResponse.json(updatedMaterial);
   } catch (error: unknown) {
+    if (isDuplicateBarcodeError(error)) {
+      return NextResponse.json({ error: DUPLICATE_BARCODE_MESSAGE }, { status: 409 });
+    }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(
         { error: "A material with this name already exists" },
